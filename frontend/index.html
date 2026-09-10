@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MicroPredict - BOT Chain Testnet</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<style>
+body{font-family:sans-serif;max-width:760px;margin:24px auto;padding:0 12px}
+input{width:100%;margin:2px 0;box-sizing:border-box}
+button{margin:4px 4px 4px 0}
+pre{background:#111;color:#0f0;padding:12px;white-space:pre-wrap}
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #999;padding:4px 6px;text-align:left}
+</style>
+</head>
+<body>
+<h1>MicroPredict - BOT Chain Testnet</h1>
+<p>Binary prediction markets settled in BOT. Min bet 0.001 BOT. Owner resolves after end time. Chain 968.</p>
+<button id="b_connect">Connect wallet</button>
+<p>Contract <input id="paddr" size="44"></p>
+<h2>Browse markets</h2>
+<p><button id="b_scan">Load markets</button></p>
+<div id="markets"></div>
+<h2>Place a bet</h2>
+<p>Market ID <input id="bet_id"> Outcome (0 or 1) <input id="bet_out"> Amount in BOT <input id="bet_amt"> <button id="b_bet">Bet</button></p>
+<h2>Claim winnings or refund</h2>
+<p>Market ID <input id="cl_id"> <button id="b_claim">Claim</button></p>
+<h2>Owner - create market</h2>
+<p>Duration in seconds <input id="cm_dur"> Fee in bps (max 500) <input id="cm_fee"> <button id="b_create">Create market</button></p>
+<h2>Owner - resolve</h2>
+<p>Market ID <input id="rs_id"> Winner (0 or 1) <input id="rs_w"> <button id="b_resolve">Resolve</button></p>
+<h2>Owner - void threshold (pre-commit before volume)</h2>
+<p>Market ID <input id="th_id"> Min winning pool in BOT to avoid void <input id="th_v"> <button id="b_threshold">Set void threshold</button></p>
+<h2>Forecast net return (fee-honest)</h2>
+<p>Market ID <input id="fc_id"> Stake in BOT <input id="fc_stake"> <button id="b_forecast">Forecast both sides</button></p>
+<p><em>Net = payout minus stake; fee is taken from the pool, so the loser side always subsidizes the fee.</em></p>
+<h2>Owner - withdraw fees</h2>
+<p>Market ID (fully claimed only) <input id="fw_id"> To <input id="fw_to"> <button id="b_fees">Withdraw fees</button></p>
+<h2>Log</h2>
+<pre id="log"></pre>
+<p><a href="https://faucet.botchain.ai/basic">Testnet faucet</a> - <a href="https://scan.bohr.life">Testnet explorer</a></p>
+<script src="app.js"></script>
+</body>
+</html>
