@@ -3,43 +3,336 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MicroPredict - BOT Chain Testnet</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<title>MicroPredict — BOT Chain odds board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-body{font-family:sans-serif;max-width:760px;margin:24px auto;padding:0 12px}
-input{width:100%;margin:2px 0;box-sizing:border-box}
-button{margin:4px 4px 4px 0}
-pre{background:#111;color:#0f0;padding:12px;white-space:pre-wrap}
-table{border-collapse:collapse;width:100%}
-td,th{border:1px solid #999;padding:4px 6px;text-align:left}
+  :root{
+    --casing:#17140f;
+    --casing-deep:#100e0a;
+    --panel:#1f1b14;
+    --flap:#efe7d3;
+    --flap-shadow:#c9bf9f;
+    --ink:#221f19;
+    --muted:#a89f8c;
+    --muted-dim:#726a5a;
+    --teal:#12766a;
+    --teal-ink:#dff2ee;
+    --rust:#c1481d;
+    --rust-ink:#fbe6da;
+    --amber:#e2a33d;
+    --line:#38322570;
+    --radius-lg:10px;
+    --radius-sm:4px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--casing-deep);
+    color:var(--muted);
+    font-family:'Archivo',sans-serif;
+    line-height:1.5;
+    padding:28px 16px 80px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+
+  header{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+    margin-bottom:22px;
+  }
+  .wordmark{display:flex;gap:3px;}
+  .wordmark span{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:30px;height:38px;background:var(--flap);color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:20px;
+    border-radius:3px;box-shadow:inset 0 -3px 0 var(--flap-shadow);
+    transform:rotateX(-90deg);opacity:0;
+    animation:letterFlap .42s ease forwards;
+  }
+  @keyframes letterFlap{to{transform:rotateX(0deg);opacity:1;}}
+  .chain-tag{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);
+    letter-spacing:.02em;margin-top:4px;
+  }
+  .head-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  select,button.btn{
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;
+    padding:9px 14px;border-radius:var(--radius-sm);border:1px solid var(--line);
+    background:var(--panel);color:var(--flap);cursor:pointer;
+  }
+  button.btn:hover{border-color:var(--muted-dim);}
+  button.btn.primary{background:var(--amber);color:#3a2506;border-color:var(--amber);}
+  button.btn.primary:hover{filter:brightness(1.08);}
+  button.btn.ghost{background:transparent;}
+  button.btn:disabled{opacity:.45;cursor:not-allowed;}
+  #walletState{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--amber);align-self:center;}
+
+  section{margin-bottom:26px;}
+  .section-label{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);
+    text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px 2px;
+  }
+
+  .board{
+    background:var(--casing);border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:10px;box-shadow:inset 0 0 0 1px #00000040;
+  }
+  table.board-table{width:100%;border-collapse:collapse;}
+  table.board-table thead th{
+    text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-dim);
+    text-transform:uppercase;letter-spacing:.06em;padding:6px 10px;font-weight:500;
+  }
+  tr.flap-row{
+    background:var(--flap);color:var(--ink);cursor:pointer;
+    transform-origin:top center;transform:rotateX(-90deg);opacity:0;
+    animation:flapIn .5s ease forwards;
+  }
+  @keyframes flapIn{to{transform:rotateX(0deg);opacity:1;}}
+  tr.flap-row td{padding:11px 10px;border-bottom:2px solid var(--flap-shadow);font-size:13.5px;vertical-align:middle;}
+  tr.flap-row:last-child td{border-bottom:none;}
+  tr.flap-row:hover{background:#e7ddc2;}
+  tr.flap-row.selected{background:#dfd3ab;}
+  td.mkt-name{font-weight:700;}
+  td.mkt-id{font-family:'IBM Plex Mono',monospace;color:var(--muted-dim);width:26px;}
+  td.mkt-closes{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-dim);}
+  .pool-chip{
+    display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;
+    padding:3px 7px;border-radius:3px;
+  }
+  .pool-chip.a{background:var(--teal);color:var(--teal-ink);}
+  .pool-chip.b{background:var(--rust);color:var(--rust-ink);}
+  .status-flap{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;
+    padding:3px 8px;border-radius:3px;display:inline-block;white-space:nowrap;
+  }
+  .status-flap.open{background:#cfe8c9;color:#204d16;}
+  .status-flap.ended{background:#e9dcae;color:#5b4809;}
+  .status-flap.resolved{background:#c7d8ef;color:#1c3a63;}
+  .status-flap.void{background:#e3c3c3;color:#5e1f1f;}
+  @media(max-width:640px){
+    .col-closes{display:none;}
+  }
+
+  .ticket-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:720px){.ticket-grid{grid-template-columns:1fr;}}
+
+  .ticket{
+    background:var(--flap);color:var(--ink);border-radius:var(--radius-lg);
+    padding:20px 20px 18px;position:relative;
+  }
+  .ticket::before,.ticket::after{
+    content:"";position:absolute;top:50%;width:18px;height:18px;background:var(--casing-deep);
+    border-radius:50%;transform:translateY(-50%);
+  }
+  .ticket::before{left:-9px;}
+  .ticket::after{right:-9px;}
+  .ticket h3{margin:0 0 4px;font-size:15px;text-align:center;}
+  .ticket .sub{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);margin-bottom:16px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+  .field input, .field select{
+    width:100%;padding:8px 9px;border-radius:var(--radius-sm);border:1.5px solid var(--flap-shadow);
+    background:#faf6ea;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:13px;
+  }
+  .side-toggle{display:flex;gap:8px;}
+  .side-toggle button{
+    flex:1;padding:9px;border-radius:var(--radius-sm);border:1.5px solid var(--flap-shadow);
+    background:#faf6ea;font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);
+  }
+  .side-toggle button.on.a{background:var(--teal);color:var(--teal-ink);border-color:var(--teal);}
+  .side-toggle button.on.b{background:var(--rust);color:var(--rust-ink);border-color:var(--rust);}
+  .ticket .cta{
+    width:100%;margin-top:6px;padding:11px;border-radius:var(--radius-sm);border:none;
+    background:var(--amber);color:#3a2506;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;cursor:pointer;
+  }
+  .ticket .cta:hover{filter:brightness(1.06);}
+  .ticket .cta:disabled{opacity:.45;cursor:not-allowed;}
+  .error-msg{color:#8a1f1f;font-size:12px;margin-top:6px;display:none;font-family:'IBM Plex Mono',monospace;}
+
+  .receipt{
+    background:var(--flap);color:var(--ink);border-radius:var(--radius-lg);padding:20px;
+    font-family:'IBM Plex Mono',monospace;
+    background-image:repeating-linear-gradient(var(--flap),var(--flap) 21px,#e2d8bb 22px);
+  }
+  .receipt h3{margin:0 0 2px;font-family:'Archivo',sans-serif;font-size:15px;text-align:center;}
+  .receipt .sub{text-align:center;font-size:11px;color:var(--muted-dim);margin-bottom:14px;}
+  .receipt-row{display:flex;justify-content:space-between;font-size:12.5px;padding:2px 0;}
+  .receipt-side{margin-bottom:14px;border-bottom:1px dashed var(--flap-shadow);padding-bottom:10px;}
+  .receipt-side:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .receipt-side .label{font-weight:600;margin-bottom:4px;}
+  .receipt-side.a .label{color:var(--teal);}
+  .receipt-side.b .label{color:var(--rust);}
+  .net.pos{color:#1a6b1a;font-weight:600;}
+  .net.neg{color:#a3271f;font-weight:600;}
+
+  .held-list{display:flex;flex-direction:column;gap:8px;}
+  .held-item{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  }
+  .held-item .desc{font-size:13px;color:var(--flap);}
+  .held-item .desc b{color:var(--amber);}
+  .held-item .meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);}
+  .empty-note{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-dim);padding:6px 2px;}
+
+  #backoffice{display:none;}
+  .office{
+    border:1.5px dashed var(--line);border-radius:var(--radius-lg);padding:18px;
+    background:repeating-linear-gradient(135deg,#1c1811,#1c1811 12px,#211c14 12px,#211c14 24px);
+  }
+  .office-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:720px){.office-grid{grid-template-columns:1fr;}}
+  .office-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;}
+  .office-card h4{margin:0 0 10px;font-size:13px;color:var(--flap);}
+  .office-card .field label{color:var(--muted-dim);}
+  .office-card .field input,.office-card .field select{background:var(--casing);color:var(--flap);border-color:var(--line);}
+  .office-card button.btn{width:100%;margin-top:2px;}
+
+  #log{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted-dim);
+    border-top:1px solid var(--line);padding-top:10px;margin-top:26px;max-height:110px;overflow:auto;
+  }
+  #log div{padding:2px 0;}
+  footer{
+    margin-top:30px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  }
+  footer a{color:var(--amber);text-decoration:none;}
+  .addr-field{display:flex;align-items:center;gap:6px;}
+  .addr-field input{
+    width:320px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+    color:var(--flap);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;
+  }
+  @media(max-width:640px){.addr-field{flex-direction:column;align-items:flex-start;}}
 </style>
 </head>
 <body>
-<h1>MicroPredict - BOT Chain Testnet</h1>
-<p>Binary prediction markets settled in BOT. Min bet 0.001 BOT. Owner resolves after end time. Chain 968.</p>
-<button id="b_connect">Connect wallet</button>
-<p>Contract <input id="paddr" size="44"></p>
-<h2>Browse markets</h2>
-<p><button id="b_scan">Load markets</button></p>
-<div id="markets"></div>
-<h2>Place a bet</h2>
-<p>Market ID <input id="bet_id"> Outcome (0 or 1) <input id="bet_out"> Amount in BOT <input id="bet_amt"> <button id="b_bet">Bet</button></p>
-<h2>Claim winnings or refund</h2>
-<p>Market ID <input id="cl_id"> <button id="b_claim">Claim</button></p>
-<h2>Owner - create market</h2>
-<p>Duration in seconds <input id="cm_dur"> Fee in bps (max 500) <input id="cm_fee"> <button id="b_create">Create market</button></p>
-<h2>Owner - resolve</h2>
-<p>Market ID <input id="rs_id"> Winner (0 or 1) <input id="rs_w"> <button id="b_resolve">Resolve</button></p>
-<h2>Owner - void threshold (pre-commit before volume)</h2>
-<p>Market ID <input id="th_id"> Min winning pool in BOT to avoid void <input id="th_v"> <button id="b_threshold">Set void threshold</button></p>
-<h2>Forecast net return (fee-honest)</h2>
-<p>Market ID <input id="fc_id"> Stake in BOT <input id="fc_stake"> <button id="b_forecast">Forecast both sides</button></p>
-<p><em>Net = payout minus stake; fee is taken from the pool, so the loser side always subsidizes the fee.</em></p>
-<h2>Owner - withdraw fees</h2>
-<p>Market ID (fully claimed only) <input id="fw_id"> To <input id="fw_to"> <button id="b_fees">Withdraw fees</button></p>
-<h2>Log</h2>
-<pre id="log"></pre>
-<p><a href="https://faucet.botchain.ai/basic">Testnet faucet</a> - <a href="https://scan.bohr.life">Testnet explorer</a></p>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="wordmark" id="wordmark"></div>
+      <div class="chain-tag">BOT CHAIN · <span id="chainLabel">TESTNET 968</span></div>
+    </div>
+    <div class="head-right">
+      <span id="walletState">not connected</span>
+      <select id="roleSelect" title="Preview as">
+        <option value="bettor">Preview: bettor</option>
+        <option value="owner">Preview: owner</option>
+      </select>
+      <button class="btn primary" id="connectBtn">Connect wallet</button>
+    </div>
+  </header>
+
+  <section>
+    <p class="section-label">Odds board — live markets</p>
+    <div class="board">
+      <table class="board-table">
+        <thead>
+          <tr>
+            <th class="col-id">#</th>
+            <th>Market</th>
+            <th class="col-closes">Closes</th>
+            <th>Pool A</th>
+            <th>Pool B</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+      <p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);margin:8px 4px 2px;">
+        Live reads from the contract — <button class="btn ghost" id="refreshBtn" style="padding:2px 8px;font-size:11px;">refresh</button>
+        <span style="float:right;" id="scanStats"></span>
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="section-label">Bet slip &amp; forecast</p>
+    <div class="ticket-grid">
+      <div class="ticket">
+        <h3 id="slipTitle">Pick a market from the board</h3>
+        <div class="sub" id="slipSub">— then place your stake —</div>
+        <div class="field">
+          <label>Side</label>
+          <div class="side-toggle">
+            <button type="button" id="sideA" class="a">Side A</button>
+            <button type="button" id="sideB" class="b">Side B</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Amount (BOT)</label>
+          <input id="betAmt" type="number" min="0.001" step="0.001" placeholder="0.010">
+        </div>
+        <button class="cta" id="placeBetBtn">Place bet</button>
+        <div class="error-msg" id="betError"></div>
+      </div>
+
+      <div class="receipt">
+        <h3>Forecast</h3>
+        <div class="sub">fee-honest — the losing side always subsidizes the fee</div>
+        <div class="receipt-side a">
+          <div class="label">Side A</div>
+          <div class="receipt-row"><span>Fee</span><span id="feeA">—</span></div>
+          <div class="receipt-row"><span>Payout if win</span><span id="payA">—</span></div>
+          <div class="receipt-row"><span>Net</span><span class="net" id="netA">—</span></div>
+        </div>
+        <div class="receipt-side b">
+          <div class="label">Side B</div>
+          <div class="receipt-row"><span>Fee</span><span id="feeB">—</span></div>
+          <div class="receipt-row"><span>Payout if win</span><span id="payB">—</span></div>
+          <div class="receipt-row"><span>Net</span><span class="net" id="netB">—</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="section-label">My tickets</p>
+    <div class="held-list" id="heldList"></div>
+  </section>
+
+  <section id="backoffice">
+    <p class="section-label">Back office — owner only</p>
+    <div class="office">
+      <div class="office-grid">
+        <div class="office-card">
+          <h4>Create market</h4>
+          <div class="field"><label>Duration (hours)</label><input id="cmDur" type="number" min="1" value="24"></div>
+          <div class="field"><label>Fee (bps, max 500)</label><input id="cmFee" type="number" min="0" max="500" value="100"></div>
+          <button class="btn" id="cmSubmit">Create market</button>
+        </div>
+        <div class="office-card">
+          <h4>Resolve market</h4>
+          <div class="field"><label>Market</label><select id="rsMarket"></select></div>
+          <div class="field"><label>Winner</label><select id="rsWinner"><option value="0">Side A</option><option value="1">Side B</option></select></div>
+          <button class="btn" id="rsSubmit">Resolve</button>
+        </div>
+        <div class="office-card">
+          <h4>Set void threshold</h4>
+          <div class="field"><label>Market (zero volume only)</label><select id="thMarket"></select></div>
+          <div class="field"><label>Min winning pool (BOT)</label><input id="thAmt" type="number" min="0" step="0.01" value="0.5"></div>
+          <button class="btn" id="thSubmit">Set threshold</button>
+        </div>
+        <div class="office-card">
+          <h4>Withdraw fees</h4>
+          <div class="field"><label>Market (fully claimed only)</label><select id="fwMarket"></select></div>
+          <button class="btn" id="fwSubmit">Withdraw fees</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="log"></div>
+
+  <footer>
+    <div class="addr-field"><span>contract</span><input id="paddr" title="MicroPredict deployment address" size="44"></div>
+    <span><a href="#" id="clearLog">clear log</a> · <span id="rpcLabel">rpc.rpc.bohr.life</span></span>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
