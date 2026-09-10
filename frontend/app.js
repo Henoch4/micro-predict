@@ -107,7 +107,7 @@ async function scan(){
       tr.style.animationDelay=(0.03*(id%20))+'s';
       tr.innerHTML=`
         <td class="mkt-id">#${id}</td>
-        <td class="mkt-name">Market ${id}<div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-dim);font-weight:400;">${Number(m.feeBps)} bps fee · min 0.001 BOT</div></td>
+        <td class="mkt-name">Market ${id}<div class="sub" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-dim);font-weight:400;">${Number(m.feeBps)} bps fee · min 0.001 BOT</div></td>
         <td class="col-closes mkt-closes">${m.resolved?`—`:new Date(Number(m.endTime)*1000).toLocaleString()}</td>
         <td><span class="pool-chip a">${ethers.formatEther(m.total0)}</span></td>
         <td><span class="pool-chip b">${ethers.formatEther(m.total1)}</span></td>
