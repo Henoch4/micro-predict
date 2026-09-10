@@ -240,12 +240,28 @@ async function refreshTickets(){
   }
 }
 
+async function refreshThreshold(){
+  const id=el(`thMarket`).value;
+  if(!id){ el(`thCurrent`).textContent=`—`; return; }
+  try{
+    const t=await pred().voidThreshold(Number(id));
+    el(`thCurrent`).textContent=ethers.formatEther(t)+` BOT (min winning pool for resolve to settle)`;
+  }catch(e){
+    el(`thCurrent`).textContent=`could not read`;
+  }
+}
+
 function fillOfficeSelects(n){
+  const cur=(sel)=>el(sel).value;
+  const rs=cur(`rsMarket`), th=cur(`thMarket`), fw=cur(`fwMarket`);
   let html=`<option value="">— pick market —</option>`;
   for(let i=1;i<=n;i++)html+=`<option value="${i}">#${i}</option>`;
   el(`rsMarket`).innerHTML=html;
   el(`thMarket`).innerHTML=html;
   el(`fwMarket`).innerHTML=html;
+  const set=(sel,v)=>{ if(v)el(sel).value=v; };
+  set(`rsMarket`,rs); set(`thMarket`,th); set(`fwMarket`,fw);
+  refreshThreshold();
 }
 
 async function doCreate(){
@@ -266,6 +282,7 @@ async function doThreshold(){
   if(!id){ log(`threshold: pick a market`); return; }
   const amt=ethers.parseEther(el(`thAmt`).value||`0`);
   await send(pred().setVoidThreshold(Number(id),amt),`void threshold #${id}`);
+  refreshThreshold();
 }
 async function doFees(){
   const id=el(`fwMarket`).value;
@@ -293,6 +310,7 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`cmSubmit`).addEventListener(`click`,doCreate);
   el(`rsSubmit`).addEventListener(`click`,doResolve);
   el(`thSubmit`).addEventListener(`click`,doThreshold);
+  el(`thMarket`).addEventListener(`change`,refreshThreshold);
   el(`fwSubmit`).addEventListener(`click`,doFees);
   el(`clearLog`).addEventListener(`click`,(e)=>{ e.preventDefault(); el(`log`).innerHTML=``; });
   el(`paddr`).addEventListener(`change`,scan);
