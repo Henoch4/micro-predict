@@ -1,4 +1,4 @@
-const PRED_DEFAULT=`0x106bAa5aFD341F902B335De2A265FA845711EAA5`;
+const PRED_DEFAULT=`0x839163E7d05531a1B1BEa5ac7352AA4cF2139764`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
 const CHAIN_ID=0x3c8;
