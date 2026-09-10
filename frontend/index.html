@@ -233,6 +233,41 @@
     section{margin-bottom:20px;}
     .section-label{font-size:10.5px;}
   }
+
+  .wp-card{
+    background:var(--flap);color:var(--ink);border-radius:var(--radius-lg);
+    padding:28px 24px;box-shadow:0 2px 8px var(--flap-shadow);
+  }
+  .wp-card .wp-title{
+    font-family:'Archivo',sans-serif;font-size:17px;font-weight:700;
+    text-align:center;margin:0 0 16px;padding-bottom:12px;border-bottom:2px solid var(--flap-shadow);
+  }
+  .wp-card .wp-sec{margin:18px 0 0;}
+  .wp-card .wp-sec:first-of-type{margin-top:0;}
+  .wp-card .wp-sub{font-family:'Archivo',sans-serif;font-size:14px;font-weight:700;color:var(--ink);margin:0 0 8px;}
+  .wp-card .wp-body{font-size:13.5px;line-height:1.65;color:var(--ink);margin:0 0 10px;}
+  .wp-card .wp-arch,.wp-card .wp-road{width:100%;border-collapse:collapse;margin:6px 0 10px;font-size:13px;}
+  .wp-card .wp-arch th,.wp-card .wp-road th{
+    text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+    color:var(--muted-dim);text-transform:uppercase;letter-spacing:.05em;
+    padding:6px 0;border-bottom:1px solid var(--flap-shadow);font-weight:500;
+  }
+  .wp-card .wp-arch td,.wp-card .wp-road td{padding:7px 0;border-bottom:1px dashed var(--line);vertical-align:top;}
+  .wp-card .wp-arch td:first-child,.wp-card .wp-road td:first-child{font-weight:600;padding-right:12px;white-space:nowrap;}
+  .wp-card .wp-flow{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.8;
+    background:var(--casing-deep);border:1px dashed var(--flap-shadow);
+    border-radius:var(--radius-sm);padding:14px 16px;margin:6px 0 10px;overflow-x:auto;white-space:pre;
+  }
+  .wp-card .wp-disc{
+    font-size:12px;color:var(--muted-dim);margin:16px 0 0;
+    padding-top:12px;border-top:1px solid var(--flap-shadow);
+    font-family:'IBM Plex Mono',monospace;line-height:1.6;
+  }
+  @media(max-width:560px){
+    .wp-card{padding:20px 16px;}
+    .wp-card .wp-body{font-size:13px;}
+  }
 </style>
 </head>
 <body>
@@ -319,6 +354,123 @@
   <section>
     <p class="section-label">My tickets</p>
     <div class="held-list" id="heldList"></div>
+  </section>
+
+  <section id="whitepaper">
+    <p class="section-label">Whitepaper</p>
+    <div class="wp-card">
+      <h2 class="wp-title">MicroPredict — Whitepaper</h2>
+
+      <div class="wp-sec">
+        <p class="wp-body">An on-chain micro prediction market for BOT Chain memecoins — place a stake, watch the odds, collect the settle.</p>
+        <p class="wp-body" style="font-size:12px;color:var(--muted-dim);">Version 1 · Testnet 968 · September 2026</p>
+      </div>
+
+      <div class="wp-sec">
+        <p class="wp-sub">Abstract</p>
+        <p class="wp-body">MicroPredict is an on-chain prediction market that lets anyone list a binary event, take either side of it, and get paid out by the pool without trusting an intermediary, a price feed, or a bookmaker's word. Markets take deposits in native BOT or ERC-20, split into two branch pools (A / B), publish fee-honest odds computed live from actual pool sizes, resolve to a winner, and settle automatically. Zero-volume markets and too-small winning pools are voided under a pre-committed threshold the owner cannot silently change per-market after money is in.</p>
+        <p class="wp-body">It is built for the memecoin beats on BOT Chain: "does BOPE survive the week", "does HIRO clear a liquidity threshold by Friday". Small stakes, fast clocks, honest math.</p>
+      </div>
+
+      <div class="wp-sec">
+        <p class="wp-sub">The problem: prediction markets are either slow or untrustworthy</p>
+        <p class="wp-body">Prediction platforms usually fail one of three ways:</p>
+        <ul style="margin:0 0 10px 18px;padding:0;font-size:13.5px;line-height:1.65;color:var(--ink);">
+          <li><b>Oracle opacity.</b> Resolutions come from a black-box data source nobody can inspect, and disputes settle arbitrarily.</li>
+          <li><b>Fee opacity.</b> Odds shown to the bettor are net of fees nobody can verify — the house takes as much as the market will bear at settlement time.</li>
+          <li><b>Late-rule surprises.</b> Void conditions, minimum-pool cliffs, and fee formulas get invented after money is already committed.</li>
+        </ul>
+        <p class="wp-body">On a blockchain, none of those need to be trust-based.</p>
+      </div>
+
+      <div class="wp-sec">
+        <p class="wp-sub">Mechanics</p>
+
+        <p class="wp-body" style="font-weight:700;">Markets</p>
+        <p class="wp-body">Any owner action creates a market with a fixed clock:</p>
+        <ul style="margin:0 0 10px 18px;padding:0;font-size:13.5px;line-height:1.65;color:var(--ink);">
+          <li><b>Duration</b> — set in hours; the market closes when it expires.</li>
+          <li><b>Fee (bps)</b> — a single, visible fee applied at settlement, capped well below abuse.</li>
+          <li><b>Increments</b> — bets are staked in either native BOT or the listed ERC-20.</li>
+        </ul>
+
+        <p class="wp-body" style="font-weight:700;">Two pools, live odds</p>
+        <p class="wp-body">Every market carries two pools, <b>Side A</b> and <b>Side B</b>. Money flows to one branch and stays there until settlement.</p>
+        <p class="wp-body">Bettors see:</p>
+        <ul style="margin:0 0 10px 18px;padding:0;font-size:13.5px;line-height:1.65;color:var(--ink);">
+          <li><b>Fee</b> — the exact deduction per side, computed honestly from the pool.</li>
+          <li><b>Payout if win</b> — what that side returns on top of the stake.</li>
+          <li><b>Net</b> — the honest profit-or-loss after fees.</li>
+        </ul>
+        <p class="wp-body">The forecast is <b>fee-honest</b>: the losing side always subsidizes the fee on the winning side, exactly as the formula reads. There is no hidden spread — the numbers on the receipt are the numbers the contract settles.</p>
+
+        <p class="wp-body" style="font-weight:700;">Resolution &amp; void</p>
+        <ul style="margin:0 0 10px 18px;padding:0;font-size:13.5px;line-height:1.65;color:var(--ink);">
+          <li><b>Resolve</b> — the owner names a winner; winning side collects, losing side's stake funds the prize and the fee.</li>
+          <li><b>Void</b> — a market with zero(ish) volume, or a winning pool below the set minimum threshold, is voided and stakes are returned. The threshold is <b>pre-committed on-chain</b> before betting closes — the owner cannot tighten it to force a void after losing.</li>
+        </ul>
+
+        <p class="wp-body" style="font-weight:700;">Fee withdrawal</p>
+        <p class="wp-body">Accrued fees sit in the market until it is fully claimed, then the owner withdraws them. No fee escapes the contract, and no fee is taken before resolution.</p>
+      </div>
+
+      <div class="wp-sec">
+        <p class="wp-sub">Architecture</p>
+        <table class="wp-arch">
+          <thead><tr><th>Layer</th><th>Piece</th></tr></thead>
+          <tbody>
+            <tr><td>Market ledger</td><td>Every market: duration, fee, A/B pools, state (open → resolved/voided).</td></tr>
+            <tr><td>Forecast engine</td><td>On-chain read of pool sizes → fee, payout, net for both sides.</td></tr>
+            <tr><td>Back office</td><td>Owner-only: create market, resolve, set void threshold, withdraw fees.</td></tr>
+            <tr><td>Tickets</td><td>Every bet is a held ticket with its own slice of the pool.</td></tr>
+          </tbody>
+        </table>
+
+        <p class="wp-body" style="font-weight:700;">Betting flow</p>
+        <div class="wp-flow">owner: createMarket(duration, feeBps)
+bet:   placeBet(market, side, amount)      ── BOT or ERC-20
+board: odds board reads live pools ──► fee / payout / net forecast
+close: market expires
+owner: resolve(market, winner)             ── or void under threshold
+settle: winners withdraw; losing stake funds prize + fee
+owner: withdrawFees(market)                ── after full claim</div>
+      </div>
+
+      <div class="wp-sec">
+        <p class="wp-sub">Security &amp; fairness model</p>
+        <ul style="margin:0 0 10px 18px;padding:0;font-size:13.5px;line-height:1.65;color:var(--ink);">
+          <li><b>Fee-honest math.</b> Odds are derived from actual committed pools; the receipt is the settlement.</li>
+          <li><b>Pre-committed void threshold.</b> The minimum winning pool is set before the market is meaningfully funded, and read back as "current" from the contract — not from memory.</li>
+          <li><b>No credit.</b> Everything is on-chain; no intermediary holds stakes between bet and settle.</li>
+          <li><b>Reentrancy-safe settlement.</b> Claim and fee tracks settle cleanly, one market at a time.</li>
+        </ul>
+      </div>
+
+      <div class="wp-sec">
+        <p class="wp-sub">Roadmap</p>
+        <table class="wp-road">
+          <thead><tr><th>Item</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Markets, A/B pools, fee-honest forecast, tickets</td><td>Shipped (testnet 968)</td></tr>
+            <tr><td>Void thresholds pre-committed per market</td><td>Shipped</td></tr>
+            <tr><td>Fee withdrawal per market</td><td>Shipped</td></tr>
+            <tr><td>Responsive odds board (mobile bets)</td><td>Shipped</td></tr>
+            <tr><td>Resolution oracles / dispute window</td><td>Next</td></tr>
+            <tr><td>Leaderboards &amp; points for long-running markets</td><td>Parked</td></tr>
+            <tr><td>Base rails (mirror of BOT Chain)</td><td>Parked</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="wp-sec">
+        <p class="wp-sub">No token</p>
+        <p class="wp-body">MicroPredict needs no governance token to work — the fee is the product, and the markets are the reward. Points-style participation reward is a roadmap item, not a requirement.</p>
+      </div>
+
+      <div class="wp-sec">
+        <p class="wp-disc">This document describes a prediction market on BOT Chain testnet (968). Markets are binary games with real stakes and real loss risk; past outcomes do not predict future ones. Nothing here is financial advice, and markets with small liquidity may be voided under their pre-committed thresholds. Bet only what you can afford to lose.</p>
+      </div>
+    </div>
   </section>
 
   <section id="backoffice">
