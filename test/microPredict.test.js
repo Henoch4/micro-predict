@@ -133,4 +133,30 @@ it(`bars owner from betting`, async function () {
     await expect(predict.connect(user1).setVoidThreshold(1, ethers.parseEther(`0.5`)))
       .to.be.revertedWithCustomError(predict, `NotOwner`);
   });
+
+  it(`ownership timelock: proposeOwner + acceptOwner after delay`, async function () {
+    const { owner, user1, predict } = await deploy();
+    await predict.proposeOwner(user1.address);
+    expect(await predict.pendingOwner()).to.equal(user1.address);
+    await expect(predict.connect(user1).acceptOwner()).to.be.revertedWithCustomError(predict, `TimelockActive`);
+    await ethers.provider.send(`evm_increaseTime`, [48 * 3600 + 1]);
+    await ethers.provider.send(`evm_mine`, []);
+    await predict.connect(user1).acceptOwner();
+    expect(await predict.owner()).to.equal(user1.address);
+  });
+
+  it(`timeout sweep allows fee withdrawal after 30 days even if unclaimed`, async function () {
+    const { owner, user1, user2, predict } = await deploy();
+    await predict.createMarket(3600, 100);
+    await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
+    await predict.connect(user2).bet(1, 0, { value: ethers.parseEther(`3`) });
+    await ethers.provider.send(`evm_increaseTime`, [3601]);
+    await ethers.provider.send(`evm_mine`, []);
+    await predict.resolve(1, 0);
+    await predict.connect(user1).claim(1);
+    await expect(predict.ownerWithdrawFees(1, owner.address)).to.be.revertedWithCustomError(predict, `NotFullyClaimed`);
+    await ethers.provider.send(`evm_increaseTime`, [30 * 24 * 3600 + 1]);
+    await ethers.provider.send(`evm_mine`, []);
+    await expect(predict.ownerWithdrawFees(1, owner.address)).to.emit(predict, `FeesWithdrawn`);
+  });
 });

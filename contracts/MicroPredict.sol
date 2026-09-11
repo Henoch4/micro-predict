@@ -3,6 +3,9 @@ pragma solidity ^0.8.20;
 
 contract MicroPredict {
     address public owner;
+    address public pendingOwner;
+    uint256 public pendingOwnerAt;
+    uint256 public constant OWNERSHIP_TIMELOCK = 48 hours;
     uint256 public marketCount;
     uint256 public collectedFees;
     uint256 public constant MIN_BET = 0.001 ether;
@@ -34,6 +37,8 @@ contract MicroPredict {
     event Claimed(uint256 indexed id, address indexed user, uint256 payout);
     event FeesWithdrawn(uint256 indexed id, uint256 amount);
     event VoidThresholdSet(uint256 indexed id, uint256 amount);
+    event OwnerProposed(address indexed newOwner, uint256 at);
+    event OwnerAccepted(address indexed newOwner);
 
     error NotOwner();
     error BadTime();
@@ -51,6 +56,7 @@ contract MicroPredict {
     error NotFullyClaimed();
     error FeesDone();
     error HasVolume();
+    error TimelockActive();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -66,6 +72,22 @@ contract MicroPredict {
 
     constructor() {
         owner = msg.sender;
+    }
+
+    function proposeOwner(address newOwner) external onlyOwner {
+        if (newOwner == address(0)) revert BadFee();
+        pendingOwner = newOwner;
+        pendingOwnerAt = block.timestamp + OWNERSHIP_TIMELOCK;
+        emit OwnerProposed(newOwner, pendingOwnerAt);
+    }
+
+    function acceptOwner() external {
+        if (msg.sender != pendingOwner) revert NotOwner();
+        if (block.timestamp < pendingOwnerAt) revert TimelockActive();
+        owner = pendingOwner;
+        pendingOwner = address(0);
+        pendingOwnerAt = 0;
+        emit OwnerAccepted(owner);
     }
 
     function createMarket(uint64 durationSecs, uint256 feeBps) external onlyOwner returns (uint256 id) {
@@ -171,7 +193,8 @@ contract MicroPredict {
     function ownerWithdrawFees(uint256 id, address payable to) external onlyOwner noReentry {
         Market storage m = markets[id];
         if (m.resolved != true || m.voided == true) revert NotEnded();
-        if (m.claimedTotal < m.winningTotal) revert NotFullyClaimed();
+        bool timeoutSweep = block.timestamp >= m.endTime + 30 days;
+        if (!timeoutSweep && m.claimedTotal < m.winningTotal) revert NotFullyClaimed();
         if (feeWithdrawn[id] == true) revert FeesDone();
         feeWithdrawn[id] = true;
         uint256 amount = marketFee(id);

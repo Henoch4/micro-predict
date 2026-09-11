@@ -2,13 +2,15 @@ import * as ethers from 'ethers';
 import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
-const PRED_DEFAULT=`0x839163E7d05531a1B1BEa5ac7352AA4cF2139764`;
+const PRED_DEFAULT=`0xb71588BE36603e48F114F97b07c42602f50144f0`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
 const CHAIN_ID=0x3c8;
 
 const PRED_ABI=[
 `function owner() view returns (address)`,
+`function pendingOwner() view returns (address)`,
+`function pendingOwnerAt() view returns (uint256)`,
 `function marketCount() view returns (uint256)`,
 `function collectedFees() view returns (uint256)`,
 `function markets(uint256) view returns (uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps)`,
@@ -21,6 +23,9 @@ const PRED_ABI=[
 `function claim(uint256)`,
 `function ownerWithdrawFees(uint256,address)`,
 `function setVoidThreshold(uint256,uint256)`,
+`function proposeOwner(address)`,
+`function acceptOwner()`,
+`function OWNERSHIP_TIMELOCK() view returns (uint256)`,
 ];
 
 let signer=null;
@@ -227,10 +232,37 @@ async function scan(){
     const n=Number(await v.marketCount());
     const body=el(`boardBody`);
     body.innerHTML=``;
+
+    if(n===0){
+      el(`scanStats`).textContent=`0 markets`;
+      fillOfficeSelects(0);
+      return;
+    }
+
+    const mc=new ethers.MulticallContract(
+      v.target,
+      [
+        `function marketCount() view returns (uint256)`,
+        `function markets(uint256) view returns (uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps)`,
+        `function owner() view returns (address)`,
+        `function collectedFees() view returns (uint256)`,
+      ],
+      v.runner
+    );
+
+    const calls=[];
+    for(let i=1;i<=n;i++){ calls.push({fragment: mc.interface.getFunction(`markets`), args: [i]}); }
+    calls.push({fragment: mc.interface.getFunction(`owner`), args: []});
+    calls.push({fragment: mc.interface.getFunction(`collectedFees`), args: []});
+
+    const results=await mc.aggregate(calls);
+    const markets=results.slice(0,n).map(r=>r[0]);
+    const ownerAddr=results[n][0];
+    const collectedFees=results[n+1][0];
+
     const sorted=[];
-    for(let i=1;i<=n;i++){
-      const m=await v.markets(i);
-      sorted.push({id:i,m});
+    for(let i=0;i<n;i++){
+      sorted.push({id:i+1,m:markets[i]});
     }
     sorted.sort((a,b)=>{
       const ap=a.m.resolved?9:0, bp=b.m.resolved?9:0;
@@ -250,10 +282,10 @@ async function scan(){
       tr.addEventListener(`click`,()=>select(id));
       body.appendChild(tr);
     }
-    const ownerAddr=await v.owner();
+
     state.owner=ownerAddr.toLowerCase();
     updateBackofficeVisibility();
-    el(`scanStats`).textContent=n+` markets · owner ${shorten(ownerAddr)} · fees ${ethers.formatEther(await v.collectedFees())} BOT`;
+    el(`scanStats`).textContent=n+` markets · owner ${shorten(ownerAddr)} · fees ${ethers.formatEther(collectedFees)} BOT`;
     if(state.sel>n)select(0);
     fillOfficeSelects(n);
     if(n)updateForecast();
@@ -346,11 +378,34 @@ async function refreshTickets(){
   const now=Math.floor(Date.now()/1000);
   try{
     const n=Number(await v.marketCount());
+    if(n===0){
+      list.innerHTML=`<div class="empty-note">no markets yet</div>`;
+      return;
+    }
+
+    const mc=new ethers.MulticallContract(
+      v.target,
+      [
+        `function markets(uint256) view returns (uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps)`,
+        `function stakes(uint256,address,uint8) view returns (uint256)`,
+      ],
+      v.runner
+    );
+
+    const calls=[];
+    for(let i=1;i<=n;i++){
+      calls.push({fragment: mc.interface.getFunction(`markets`), args: [i]});
+      calls.push({fragment: mc.interface.getFunction(`stakes`), args: [i,account,0]});
+      calls.push({fragment: mc.interface.getFunction(`stakes`), args: [i,account,1]});
+    }
+
+    const results=await mc.aggregate(calls);
     let html=``;
     for(let i=1;i<=n;i++){
-      const m=await v.markets(i);
-      const s0=await v.stakes(i,account,0);
-      const s1=await v.stakes(i,account,1);
+      const idx=(i-1)*3;
+      const m=results[idx][0];
+      const s0=results[idx+1][0];
+      const s1=results[idx+2][0];
       if(s0>0n||s1>0n){
         const st=statusOf(m,now,true);
         const claimable=m.resolved;
