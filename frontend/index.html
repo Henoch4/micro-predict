@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5efe0">
 <title>MicroPredict — BOT Chain odds board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,7 +103,7 @@
   tr.flap-row:last-child td{border-bottom:none;}
   tr.flap-row:hover{background:#e7ddc2;}
   tr.flap-row.selected{background:#dfd3ab;}
-  td.mkt-name{font-weight:700;}
+  td.mkt-name{font-weight:700;overflow-wrap:anywhere;}
   td.mkt-id{font-family:'IBM Plex Mono',monospace;color:var(--muted-dim);width:26px;}
   td.mkt-closes{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-dim);}
   .pool-chip{
@@ -228,7 +229,7 @@
     width:320px;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
     color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;
   }
-  @media(max-width:640px){.addr-field{flex-direction:column;align-items:flex-start;}}
+  @media(max-width:640px){.addr-field{flex-direction:column;align-items:stretch;}.addr-field input{width:100%;min-width:0;flex:1;}}
   @media(max-width:560px){
     .wrap{padding:0;}
     body{padding:20px 12px 70px;}
@@ -236,6 +237,22 @@
     .office{padding:14px;}
     section{margin-bottom:20px;}
     .section-label{font-size:10.5px;}
+    /* 16px inputs stop iOS Safari auto-zoom on focus */
+    .field input,.field select{font-size:16px;}
+    .wp-card{padding:20px 16px;}
+    .wp-card .wp-arch td:first-child,.wp-card .wp-road td:first-child{white-space:normal;}
+    .wp-card .wp-flow{font-size:11px;padding:12px;}
+    .ticket .cta{white-space:normal;line-height:1.35;min-height:48px;}
+  }
+  @media(max-width:380px){
+    .wordmark span{width:19px;height:25px;font-size:12px;}
+    table.board-table{min-width:400px;}
+  }
+  /* 44px touch targets on coarse pointers */
+  @media(pointer:coarse){
+    .ticket .cta,button.btn.primary{min-height:44px;}
+    tr.flap-row td{padding-top:13px;padding-bottom:13px;}
+    .side-toggle button{padding:11px 9px;}
   }
 
   .wp-card{
