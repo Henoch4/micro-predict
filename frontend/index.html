@@ -211,9 +211,13 @@
 
   #log{
     font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted-dim);
-    border-top:1px solid var(--line);padding-top:10px;margin-top:26px;max-height:110px;overflow:auto;
+    border-top:1px solid var(--line);padding-top:10px;margin-top:6px;max-height:132px;overflow:auto;
   }
-  #log div{padding:2px 0;}
+  #log div{padding:2px 0;word-break:break-all;}
+  #log .lg-t{color:var(--muted-dim);opacity:.7;margin-right:6px;}
+  #log .lg-ok{color:var(--side-a);}
+  #log .lg-err{color:var(--side-b);}
+  #log a{color:var(--amber);text-decoration:none;border-bottom:1px dotted var(--amber);}
   footer{
     margin-top:30px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);
     display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
@@ -530,7 +534,10 @@ admin: withdrawFees(market) ── full claim or 30d; sweepUnclaimed 180d</div>
     </div>
   </section>
 
-  <div id="log"></div>
+  <section>
+    <p class="section-label">Activity — transaction trail</p>
+    <div id="log"></div>
+  </section>
 
   <footer>
     <div class="addr-field"><span>contract</span><input id="paddr" title="MicroPredict deployment address" size="44"></div>

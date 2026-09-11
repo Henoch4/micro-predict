@@ -180,10 +180,20 @@ function onConnectClick(){
 
 const state={ sel:0, side:0, owner:null, resolver:null, meta:{} };
 
+function esc(s){ return s.replace(/&/g,`&amp;`).replace(/</g,`&lt;`).replace(/>/g,`&gt;`); }
+function linkify(s){
+  return s
+    .replace(/0x[0-9a-fA-F]{64}/g,(h)=>`<a href="${EXPLORER}/tx/${h}" target="_blank" rel="noopener">${shorten(h)}</a>`)
+    .replace(/0x[0-9a-fA-F]{40}/g,(a)=>shorten(a));
+}
 function log(m){
   const el=document.getElementById(`log`);
   const d=document.createElement(`div`);
-  d.textContent=m;
+  const kind=/^✗/.test(m)?`lg-err`:(/^✓/.test(m)?`lg-ok`:``);
+  if(kind)d.className=kind;
+  const t=new Date();
+  const ts=[t.getHours(),t.getMinutes(),t.getSeconds()].map((x)=>String(x).padStart(2,`0`)).join(`:`);
+  d.innerHTML=`<span class="lg-t">${ts}</span>`+linkify(esc(m));
   el.appendChild(d);
   while(el.children.length>40)el.removeChild(el.firstChild);
   el.scrollTop=el.scrollHeight;
