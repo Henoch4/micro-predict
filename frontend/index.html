@@ -308,6 +308,26 @@
     </div>
   </section>
 
+  <section id="propose">
+    <p class="section-label">Propose a market — anyone, 0.005 BOT listing fee</p>
+    <div class="office"><div class="office-grid">
+      <div class="office-card">
+        <h4>Your question</h4>
+        <div class="field"><label>Question</label><input id="pmQ" type="text" maxlength="140" placeholder="Does $BOPE close above $0.002 Friday?"></div>
+        <div class="field"><label>Duration (hours)</label><input id="pmDur" type="number" min="1" value="24"></div>
+        <div class="field"><label>Fee (bps, max 500)</label><input id="pmFee" type="number" min="0" max="500" value="100"></div>
+      </div>
+      <div class="office-card">
+        <h4>Settlement rule</h4>
+        <div class="field"><label>Rule</label><select id="pmKind"><option value="0">Manual — resolver decides</option><option value="1">Liquidity holds threshold</option></select></div>
+        <div class="field"><label>Pair address (liquidity rule only)</label><input id="pmRef" type="text" placeholder="0x…"></div>
+        <div class="field"><label>Threshold (liquidity rule only)</label><input id="pmTh" type="text" placeholder="e.g. 10000"></div>
+        <div class="field"><label>Resolver (blank = default)</label><input id="pmResolver" type="text" placeholder="0x…"></div>
+        <button class="btn" id="pmSubmit">Propose market (0.005 BOT)</button>
+      </div>
+    </div></div>
+  </section>
+
   <section id="backoffice">
     <p class="section-label">Back office — owner only</p>
     <div class="office">

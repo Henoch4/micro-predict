@@ -6,7 +6,7 @@ const path = require(`path`);
 // winning on the minority side (winnerTotal < loserTotal).
 // Pure log indexing. No contract changes, no state reads except via events.
 async function main() {
-  const PRED = process.env.PRED || `0xf9E816eCA32d5a086b9D64480832f3aa4BA25A7a`;
+  const PRED = process.env.PRED || `0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a`;
   const RPC = `https://rpc.bohr.life`;
   const provider = new ethers.JsonRpcProvider(RPC);
   const abi = [

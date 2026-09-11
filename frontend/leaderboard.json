@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-09-11T02:58:27.875Z",
+  "updatedAt": "2026-09-11T03:18:18.592Z",
   "chainId": 968,
-  "contract": "0xf9E816eCA32d5a086b9D64480832f3aa4BA25A7a",
+  "contract": "0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a",
   "season": {
     "id": 1,
     "rule": "1pt per 0.01 BOT + 50% minority-win bonus",

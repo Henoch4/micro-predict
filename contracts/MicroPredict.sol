@@ -14,7 +14,16 @@ contract MicroPredict {
     uint256 public constant DISPUTE_WINDOW = 1 hours;
     uint256 public constant DISPUTE_BOND = 0.01 ether;
     uint256 public constant SWEEP_DELAY = 180 days;
+    uint256 public constant LISTING_FEE = 0.005 ether;
     uint256 private guardFlag = 1;
+
+    // kind: 0=manual, 1=liquidity-above (ref=pair, threshold on reserve0+reserve1 raw)
+    struct Rule {
+        uint8 kind;
+        address ref;
+        uint256 threshold;
+        uint64 decideAt;
+    }
 
     struct Market {
         uint64 endTime;
@@ -34,8 +43,10 @@ contract MicroPredict {
     mapping(uint256 => bool) public feeWithdrawn;
     mapping(uint256 => uint256) public voidThreshold;
     mapping(uint256 => string) public marketQuestion;
+    mapping(uint256 => Rule) public marketRule;
+    mapping(uint256 => address) public marketCreator;
+    mapping(uint256 => address) public marketResolver;
 
-    // Two-step resolution state (kept out of hot Market struct)
     mapping(uint256 => uint8) public proposedWinner;
     mapping(uint256 => uint64) public proposalTime;
     mapping(uint256 => bool) public proposalExists;
@@ -45,6 +56,7 @@ contract MicroPredict {
     mapping(uint256 => bool) public swept;
 
     event MarketCreated(uint256 indexed id, uint64 endTime, uint256 feeBps, string question);
+    event RuleSet(uint256 indexed id, uint8 kind, address ref, uint256 threshold);
     event BetPlaced(uint256 indexed id, address indexed user, uint8 outcome, uint256 amount);
     event ResolutionProposed(uint256 indexed id, uint8 winner, uint64 finalizeAfter);
     event ResolutionDisputed(uint256 indexed id, address indexed disputer, uint256 bond);
@@ -60,6 +72,7 @@ contract MicroPredict {
 
     error NotOwner();
     error NotResolver();
+    error NotCreator();
     error BadTime();
     error BadFee();
     error NoMarket();
@@ -85,14 +98,10 @@ contract MicroPredict {
     error BadBond();
     error SweepEarly();
     error AlreadySwept();
+    error BadRule();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
-        _;
-    }
-
-    modifier onlyResolver() {
-        if (msg.sender != resolver) revert NotResolver();
         _;
     }
 
@@ -130,12 +139,28 @@ contract MicroPredict {
         emit ResolverSet(r);
     }
 
-    function createMarket(uint64 durationSecs, uint256 feeBps, string calldata question) external onlyOwner returns (uint256 id) {
+    function _resolverOf(uint256 id) internal view returns (address) {
+        address r = marketResolver[id];
+        return r == address(0) ? resolver : r;
+    }
+
+    // Permissionless: anyone pays LISTING_FEE (forwarded to treasury/owner).
+    function createMarket(
+        uint64 durationSecs,
+        uint256 feeBps,
+        string calldata question,
+        Rule calldata rule,
+        address resolver_
+    ) external payable noReentry returns (uint256 id) {
         if (durationSecs < 60 || durationSecs > 90 days) revert BadTime();
         if (feeBps > MAX_FEE_BPS) revert BadFee();
+        if (msg.value < LISTING_FEE) revert BadFee();
+        if (rule.kind > 1) revert BadRule();
+        if (rule.kind == 1 && rule.ref == address(0)) revert BadRule();
         id = ++marketCount;
+        uint64 end = uint64(block.timestamp) + durationSecs;
         markets[id] = Market({
-            endTime: uint64(block.timestamp) + durationSecs,
+            endTime: end,
             resolved: false,
             voided: false,
             winner: 0,
@@ -146,12 +171,41 @@ contract MicroPredict {
             feeBps: feeBps
         });
         marketQuestion[id] = question;
-        emit MarketCreated(id, markets[id].endTime, feeBps, question);
+        marketRule[id] = Rule({
+            kind: rule.kind,
+            ref: rule.ref,
+            threshold: rule.threshold,
+            decideAt: rule.decideAt == 0 ? end : rule.decideAt
+        });
+        marketCreator[id] = msg.sender;
+        marketResolver[id] = resolver_ == address(0) ? resolver : resolver_;
+        emit MarketCreated(id, end, feeBps, question);
+        emit RuleSet(id, rule.kind, rule.ref, rule.threshold);
+        bytes memory empty;
+        (bool ok, ) = owner.call{value: msg.value}(empty);
+        if (!ok) revert TransferFail();
+    }
+
+    function setRule(uint256 id, Rule calldata rule) external {
+        Market storage m = markets[id];
+        if (m.endTime == 0) revert NoMarket();
+        if (m.resolved) revert Done();
+        if (m.total0 != 0 || m.total1 != 0) revert HasVolume();
+        if (msg.sender != owner && msg.sender != marketCreator[id]) revert NotCreator();
+        if (rule.kind > 1) revert BadRule();
+        if (rule.kind == 1 && rule.ref == address(0)) revert BadRule();
+        marketRule[id] = Rule({
+            kind: rule.kind,
+            ref: rule.ref,
+            threshold: rule.threshold,
+            decideAt: rule.decideAt == 0 ? m.endTime : rule.decideAt
+        });
+        emit RuleSet(id, rule.kind, rule.ref, rule.threshold);
     }
 
     function bet(uint256 id, uint8 outcome) external payable noReentry {
         Market storage m = markets[id];
-        if (msg.sender == owner || msg.sender == resolver) revert OwnerBet();
+        if (msg.sender == owner || msg.sender == _resolverOf(id)) revert OwnerBet();
         if (m.endTime == 0) revert NoMarket();
         if (m.resolved == true) revert Done();
         if (proposalExists[id]) revert Done();
@@ -167,7 +221,12 @@ contract MicroPredict {
         emit BetPlaced(id, msg.sender, outcome, msg.value);
     }
 
-    function proposeResolution(uint256 id, uint8 winner) external onlyResolver {
+    modifier onlyMarketResolver(uint256 id) {
+        if (msg.sender != _resolverOf(id)) revert NotResolver();
+        _;
+    }
+
+    function proposeResolution(uint256 id, uint8 winner) external onlyMarketResolver(id) {
         Market storage m = markets[id];
         if (m.endTime == 0) revert NoMarket();
         if (m.resolved) revert Done();
@@ -225,7 +284,6 @@ contract MicroPredict {
         _settle(id, winner);
     }
 
-    // Legacy instant resolve kept for tests/scripts (admin only, no dispute).
     function resolve(uint256 id, uint8 winner) external onlyOwner {
         Market storage m = markets[id];
         if (m.endTime == 0) revert NoMarket();
@@ -250,11 +308,12 @@ contract MicroPredict {
         }
     }
 
-    function setVoidThreshold(uint256 id, uint256 amount) external onlyOwner {
+    function setVoidThreshold(uint256 id, uint256 amount) external {
         Market storage m = markets[id];
         if (m.endTime == 0) revert NoMarket();
         if (m.resolved == true) revert Done();
         if (m.total0 != 0 || m.total1 != 0) revert HasVolume();
+        if (msg.sender != owner && msg.sender != marketCreator[id]) revert NotCreator();
         voidThreshold[id] = amount;
         emit VoidThresholdSet(id, amount);
     }

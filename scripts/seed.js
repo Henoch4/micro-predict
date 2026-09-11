@@ -5,7 +5,7 @@ async function main() {
   console.log(`Seeding with:`, signer.address);
   console.log(`Network:`, network.name, `chainId:`, network.config.chainId);
 
-  const PRED = `0xf9E816eCA32d5a086b9D64480832f3aa4BA25A7a`;
+  const PRED = `0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a`;
   const pred = await ethers.getContractAt(`MicroPredict`, PRED);
 
   const owner = await pred.owner();
@@ -34,9 +34,11 @@ async function main() {
     { durationSecs: 2592000, feeBps: 200, q: `Does BOPE survive 30d above $0.001?` },
   ];
 
+  const FEE = ethers.parseEther(`0.005`);
+  const NORULE = [0, ethers.ZeroAddress, 0, 0];
   for (const m of markets) {
     console.log(`Creating market: ${m.q} ...`);
-    const tx = await pred.createMarket(m.durationSecs, m.feeBps, m.q);
+    const tx = await pred.createMarket(m.durationSecs, m.feeBps, m.q, NORULE, ethers.ZeroAddress, { value: FEE });
     const receipt = await tx.wait();
     const event = receipt.logs.find((l) => l.fragment && l.fragment.name === `MarketCreated`);
     const id = event ? event.args[0].toString() : `?`;

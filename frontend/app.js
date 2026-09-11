@@ -2,7 +2,7 @@ import * as ethers from 'ethers';
 import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
-const PRED_DEFAULT=`0xf9E816eCA32d5a086b9D64480832f3aa4BA25A7a`;
+const PRED_DEFAULT=`0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
 const CHAIN_ID=0x3c8;
@@ -19,7 +19,12 @@ const PRED_ABI=[
 `function stakes(uint256,address,uint8) view returns (uint256)`,
 `function marketFee(uint256) view returns (uint256)`,
 `function voidThreshold(uint256) view returns (uint256)`,
-`function createMarket(uint64,uint256,string) returns (uint256)`,
+`function createMarket(uint64,uint256,string,tuple(uint8 kind,address ref,uint256 threshold,uint64 decideAt),address) payable returns (uint256)`,
+`function marketRule(uint256) view returns (uint8 kind, address ref, uint256 threshold, uint64 decideAt)`,
+`function marketResolver(uint256) view returns (address)`,
+`function marketCreator(uint256) view returns (address)`,
+`function setRule(uint256,tuple(uint8 kind,address ref,uint256 threshold,uint64 decideAt))`,
+`function LISTING_FEE() view returns (uint256)`,
 `function bet(uint256,uint8) payable`,
 `function resolve(uint256,uint8)`,
 `function proposeResolution(uint256,uint8)`,
@@ -614,15 +619,37 @@ function fillOfficeSelects(n){
   refreshThreshold();
 }
 
+const NORULE=()=>({kind:0,ref:`0x0000000000000000000000000000000000000000`,threshold:0n,decideAt:0});
+async function listingFee(){ try{ return await pred().LISTING_FEE(); }catch{ return ethers.parseEther(`0.005`); } }
 async function doCreate(){
   const durH=Number(el(`cmDur`).value);
   const feeBps=Number(el(`cmFee`).value);
   const q=(el(`cmQ`)&&el(`cmQ`).value||"").trim()||`Market — ${durH}h`;
   if(!durH||durH*3600<60){ log(`create: duration must be ≥ 1 minute`); return; }
+  if(!signer){ log(`create: connect a wallet first`); await connect(); if(!signer)return; }
   const durSecs=BigInt(Math.floor(durH*3600));
-  await send(pred().createMarket(durSecs,feeBps,q),`create market (${durH}h)`);
+  const fee=await listingFee();
+  await send(pred().createMarket(durSecs,feeBps,q,NORULE(),ethers.ZeroAddress,{value:fee}),`create market (${durH}h)`);
   el(`cmDur`).value=``;
   if(el(`cmQ`))el(`cmQ`).value=``;
+}
+async function doPropose(){
+  const durH=Number(el(`pmDur`).value);
+  const feeBps=Number(el(`pmFee`).value);
+  const q=(el(`pmQ`).value||"").trim();
+  if(!q){ log(`propose: question required`); return; }
+  if(!durH||durH*3600<60){ log(`propose: duration must be ≥ 1 minute`); return; }
+  if(!signer){ log(`propose: connect a wallet first`); await connect(); if(!signer)return; }
+  const kind=Number(el(`pmKind`).value||0);
+  const ref=(el(`pmRef`).value||"").trim()||ethers.ZeroAddress;
+  const thRaw=(el(`pmTh`).value||"0").trim();
+  if(kind===1&&(ref===ethers.ZeroAddress||!thRaw||Number(thRaw)<=0)){ log(`propose: liquidity rule needs pair address + threshold`); return; }
+  const th=kind===1?ethers.parseEther(thRaw):0n;
+  const rv=(el(`pmResolver`).value||"").trim()||ethers.ZeroAddress;
+  const durSecs=BigInt(Math.floor(durH*3600));
+  const fee=await listingFee();
+  await send(pred().createMarket(durSecs,feeBps,q,{kind,ref,threshold:th,decideAt:0},rv,{value:fee}),`propose market (${durH}h, fee ${ethers.formatEther(fee)} BOT)`);
+  el(`pmQ`).value=``;
 }
 async function doResolve(){
   const id=el(`rsMarket`).value;
@@ -661,6 +688,7 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`betAmt`).addEventListener(`input`,()=>{ updateForecast(); betReadiness().then(refreshBetButton).catch(()=>{}); });
   el(`placeBetBtn`).addEventListener(`click`,doBet);
   el(`cmSubmit`).addEventListener(`click`,doCreate);
+  el(`pmSubmit`).addEventListener(`click`,doPropose);
   el(`rsSubmit`).addEventListener(`click`,doResolve);
   el(`thSubmit`).addEventListener(`click`,doThreshold);
   el(`thMarket`).addEventListener(`change`,refreshThreshold);

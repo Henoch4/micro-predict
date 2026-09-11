@@ -1,7 +1,7 @@
 const { ethers, network } = require(`hardhat`);
 
 async function main() {
-  const pred = await ethers.getContractAt(`MicroPredict`, `0xf9E816eCA32d5a086b9D64480832f3aa4BA25A7a`);
+  const pred = await ethers.getContractAt(`MicroPredict`, `0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a`);
   const n = await pred.marketCount();
   console.log(`marketCount:`, n.toString());
   for (let i = 1; i <= n; i++) {
