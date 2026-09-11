@@ -1,7 +1,7 @@
 const { ethers, network } = require(`hardhat`);
 async function main() {
   const [signer] = await ethers.getSigners();
-  const pred = await ethers.getContractAt(`MicroPredict`, `0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a`);
+  const pred = await ethers.getContractAt(`MicroPredict`, `0x68DDf240099D16aFd68982b2E78E348565cAAB46`);
   console.log(`have:`, (await pred.marketCount()).toString());
   const FEE = ethers.parseEther(`0.005`);
   const NORULE = [0, ethers.ZeroAddress, 0, 0];

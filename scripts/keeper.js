@@ -7,7 +7,7 @@ const PAIR_ABI = [`function getReserves() view returns (uint112 r0, uint112 r1, 
 
 async function main() {
   const EXEC = process.argv.includes(`--exec`);
-  const PRED = process.env.PRED || `0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a`;
+  const PRED = process.env.PRED || `0x68DDf240099D16aFd68982b2E78E348565cAAB46`;
   const [signer] = await ethers.getSigners();
   console.log(`keeper as:`, signer.address, `exec:`, EXEC, `net:`, network.name);
   const pred = await ethers.getContractAt(`MicroPredict`, PRED);

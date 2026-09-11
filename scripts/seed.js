@@ -5,7 +5,7 @@ async function main() {
   console.log(`Seeding with:`, signer.address);
   console.log(`Network:`, network.name, `chainId:`, network.config.chainId);
 
-  const PRED = `0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a`;
+  const PRED = `0x68DDf240099D16aFd68982b2E78E348565cAAB46`;
   const pred = await ethers.getContractAt(`MicroPredict`, PRED);
 
   const owner = await pred.owner();

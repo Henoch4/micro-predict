@@ -361,6 +361,29 @@ contract MicroPredict {
         }
     }
 
+    struct BoardRow {
+        Market m;
+        address creator;
+        address resolverAddr;
+        string question;
+        uint8 kind;
+    }
+
+    function getBoard(uint256[] calldata ids) external view returns (BoardRow[] memory out) {
+        out = new BoardRow[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 id = ids[i];
+            address r = marketResolver[id];
+            out[i] = BoardRow({
+                m: markets[id],
+                creator: marketCreator[id],
+                resolverAddr: r == address(0) ? resolver : r,
+                question: marketQuestion[id],
+                kind: marketRule[id].kind
+            });
+        }
+    }
+
     function getUserStakes(uint256[] calldata ids, address user) external view returns (uint256[] memory s0, uint256[] memory s1) {
         s0 = new uint256[](ids.length);
         s1 = new uint256[](ids.length);

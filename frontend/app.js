@@ -2,7 +2,7 @@ import * as ethers from 'ethers';
 import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
-const PRED_DEFAULT=`0xc790D56538D0eF2F38c48DB3c7F9fD77A488f01a`;
+const PRED_DEFAULT=`0x68DDf240099D16aFd68982b2E78E348565cAAB46`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
 const CHAIN_ID=0x3c8;
@@ -41,6 +41,7 @@ const PRED_ABI=[
 `function OWNERSHIP_TIMELOCK() view returns (uint256)`,
 `function DISPUTE_WINDOW() view returns (uint256)`,
 `function getMarkets(uint256[]) view returns (tuple(uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps)[])`,
+`function getBoard(uint256[]) view returns (tuple(tuple(uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps) m, address creator, address resolverAddr, string question, uint8 kind)[])`,
 `function getUserStakes(uint256[],address) view returns (uint256[],uint256[])`,
 `function proposalExists(uint256) view returns (bool)`,
 `function disputed(uint256) view returns (bool)`,
@@ -177,13 +178,14 @@ function onConnectClick(){
   connect();
 }
 
-const state={ sel:0, side:0, owner:null };
+const state={ sel:0, side:0, owner:null, resolver:null, meta:{} };
 
 function log(m){
   const el=document.getElementById(`log`);
   const d=document.createElement(`div`);
   d.textContent=m;
   el.appendChild(d);
+  while(el.children.length>40)el.removeChild(el.firstChild);
   el.scrollTop=el.scrollHeight;
 }
 function el(id){ return document.getElementById(id); }
@@ -282,35 +284,35 @@ async function scan(){
       return;
     }
 
-    // 1 RPC for all markets via getMarkets view (replaces O(n) loop + broken MulticallContract)
+    // 1 RPC for the whole board: markets + creator + resolver + question + rule kind
     const ids=Array.from({length:n},(_,i)=>i+1);
-    const [marketsArr, ownerAddr, collectedFees] = await Promise.all([
-      v.getMarkets(ids),
+    const [rows, ownerAddr, resolverAddr, collectedFees] = await Promise.all([
+      v.getBoard(ids),
       v.owner(),
+      v.resolver().catch(()=>`0x0000000000000000000000000000000000000000`),
       v.collectedFees(),
     ]);
-    // Questions are separate strings — parallel fetch, non-blocking fallback to #N
-    let questions=[];
-    try{
-      questions=await Promise.all(ids.map(id=>v.marketQuestion(id).catch(()=>"")));
-    }catch{ questions=ids.map(()=>""); }
 
     const sorted=[];
+    state.meta={};
     for(let i=0;i<n;i++){
-      sorted.push({id:i+1,m:marketsArr[i],q:questions[i]||""});
+      const r=rows[i];
+      sorted.push({id:i+1,m:r.m,q:r.question||"",rs:r.resolverAddr,cr:r.creator,kind:Number(r.kind)});
+      state.meta[i+1]={q:r.question||"",rs:r.resolverAddr,cr:r.creator,kind:Number(r.kind)};
     }
     sorted.sort((a,b)=>{
       const ap=a.m.resolved?9:0, bp=b.m.resolved?9:0;
       return (ap-bp) || (Number(a.m.endTime)-Number(b.m.endTime));
     });
-    for(const {id,m,q} of sorted){
+    for(const {id,m,q,rs,kind} of sorted){
       const tr=document.createElement(`tr`);
       tr.className=`flap-row`;
       tr.style.animationDelay=(0.03*(id%20))+'s';
       const title=q||`Market ${id}`;
+      const ruleTag=kind===1?` · liq-rule`:` · manual`;
       tr.innerHTML=`
         <td class="mkt-id">#${id}</td>
-        <td class="mkt-name">${title}<div class="sub" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-dim);font-weight:400;">${Number(m.feeBps)} bps fee · min 0.001 BOT</div></td>
+        <td class="mkt-name">${title}<div class="sub" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-dim);font-weight:400;">${Number(m.feeBps)} bps${ruleTag} · resolver ${shorten(rs)}</div></td>
         <td class="col-closes mkt-closes">${m.resolved?`—`:new Date(Number(m.endTime)*1000).toLocaleString()}</td>
         <td><span class="pool-chip a">${ethers.formatEther(m.total0)}</span></td>
         <td><span class="pool-chip b">${ethers.formatEther(m.total1)}</span></td>
@@ -320,6 +322,7 @@ async function scan(){
     }
 
     state.owner=ownerAddr.toLowerCase();
+    state.resolver=resolverAddr.toLowerCase();
     updateBackofficeVisibility();
     el(`scanStats`).textContent=n+` markets · owner ${shorten(ownerAddr)} · fees ${ethers.formatEther(collectedFees)} BOT`;
     if(state.sel>n)select(0);
@@ -345,8 +348,9 @@ function select(id){
     el(`betError`).style.display=`none`;
     return;
   }
-  el(`slipTitle`).textContent=`Market #${id}`;
-  el(`slipSub`).textContent=`side ${state.side===0?`A`:`B`} selected`;
+  const meta=state.meta[id]||{};
+  el(`slipTitle`).textContent=(meta.q||`Market #${id}`);
+  el(`slipSub`).textContent=`#${id} · side ${state.side===0?`A`:`B`} · resolver ${shorten(meta.rs||`—`)}`;
   updateForecast();
   betReadiness().then(refreshBetButton).catch(()=>{});
 }
@@ -670,9 +674,15 @@ async function doFees(){
 }
 
 function updateBackofficeVisibility(){
-  const isOwner=!!account&&!!state.owner&&account.toLowerCase()===state.owner;
+  const me=(account||``).toLowerCase();
+  const isOwner=!!account&&!!state.owner&&me===state.owner;
+  const isResolver=!isOwner&&!!account&&!!state.resolver&&me===state.resolver;
   el(`backoffice`).style.display=isOwner?`block`:`none`;
   el(`ownerBadge`).style.display=isOwner?`inline-block`:`none`;
+  const rb=el(`roleBadge`);
+  if(!account||!state.owner){ rb.style.display=`none`; return; }
+  rb.style.display=`inline-block`;
+  rb.textContent=isOwner?`admin`:isResolver?`global resolver`:`bettor`;
 }
 
 document.addEventListener(`DOMContentLoaded`,()=>{

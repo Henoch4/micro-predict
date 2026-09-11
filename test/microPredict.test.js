@@ -269,6 +269,19 @@ it(`bars owner from betting`, async function () {
       .to.be.revertedWithCustomError(predict, `HasVolume`);
   });
 
+  it(`getBoard returns market+roles+question in one call`, async function () {
+    const { owner, user1, predict } = await deploy();
+    const FEE = ethers.parseEther(`0.005`);
+    await predict.connect(user1).createMarket(3600, 100, "board q?", [0, ethers.ZeroAddress, 0, 0], ethers.ZeroAddress, { value: FEE });
+    const rows = await predict.getBoard([1]);
+    expect(rows.length).to.equal(1);
+    expect(rows[0].question).to.equal("board q?");
+    expect(rows[0].creator).to.equal(user1.address);
+    expect(rows[0].resolverAddr).to.equal(owner.address);
+    expect(rows[0].kind).to.equal(0);
+    expect(rows[0].m.feeBps).to.equal(100);
+  });
+
   it(`sweepUnclaimed after 180 days`, async function () {
     const { owner, user1, user2, predict } = await deploy();
     await predict.createMarket(3600, 100, "q", [0, ethers.ZeroAddress, 0, 0], ethers.ZeroAddress, { value: ethers.parseEther(`0.005`) });
