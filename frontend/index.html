@@ -316,6 +316,7 @@
           <h4>Create market</h4>
           <div class="field"><label>Duration (hours)</label><input id="cmDur" type="number" min="1" value="24"></div>
           <div class="field"><label>Fee (bps, max 500)</label><input id="cmFee" type="number" min="0" max="500" value="100"></div>
+          <div class="field"><label>Question</label><input id="cmQ" type="text" maxlength="140" placeholder="Does $BOPE close above $0.002 Friday?"></div>
           <button class="btn" id="cmSubmit">Create market</button>
         </div>
         <div class="office-card">
@@ -397,7 +398,7 @@
 
       <div class="wp-sec">
         <p class="wp-sub">Abstract</p>
-        <p class="wp-body">MicroPredict is an on-chain prediction market that lets anyone list a binary event, take either side of it, and get paid out by the pool without trusting an intermediary, a price feed, or a bookmaker's word. Markets take deposits in native BOT or ERC-20, split into two branch pools (A / B), publish fee-honest odds computed live from actual pool sizes, resolve to a winner, and settle automatically. Zero-volume markets and too-small winning pools are voided under a pre-committed threshold the owner cannot silently change per-market after money is in.</p>
+        <p class="wp-body">MicroPredict is an on-chain prediction market that lets anyone list a binary event, take either side of it, and get paid out by the pool without trusting an intermediary, a price feed, or a bookmaker's word. Markets take deposits in native BOT (v1; ERC-20 is roadmap), split into two branch pools (A / B), publish fee-honest odds computed live from actual pool sizes, resolve via resolver proposal + 1h dispute window, and settle automatically. Zero-volume markets and too-small winning pools are voided under a pre-committed threshold the admin cannot silently change per-market after money is in.</p>
         <p class="wp-body">It is built for the memecoin beats on BOT Chain: "does BOPE survive the week", "does HIRO clear a liquidity threshold by Friday". Small stakes, fast clocks, honest math.</p>
       </div>
 
@@ -420,7 +421,7 @@
         <ul style="margin:0 0 10px 18px;padding:0;font-size:13.5px;line-height:1.65;color:var(--ink);">
           <li><b>Duration</b> — set in hours; the market closes when it expires.</li>
           <li><b>Fee (bps)</b> — a single, visible fee applied at settlement, capped well below abuse.</li>
-          <li><b>Increments</b> — bets are staked in either native BOT or the listed ERC-20.</li>
+          <li><b>Increments</b> — bets are staked in native BOT (min 0.001 BOT).</li>
         </ul>
 
         <p class="wp-body" style="font-weight:700;">Two pools, live odds</p>
@@ -431,11 +432,11 @@
           <li><b>Payout if win</b> — what that side returns on top of the stake.</li>
           <li><b>Net</b> — the honest profit-or-loss after fees.</li>
         </ul>
-        <p class="wp-body">The forecast is <b>fee-honest</b>: the losing side always subsidizes the fee on the winning side, exactly as the formula reads. There is no hidden spread — the numbers on the receipt are the numbers the contract settles.</p>
+        <p class="wp-body">The forecast is <b>fee-honest</b>: fee = pool * feeBps / 10000 is taken from the whole pool before pro-rata distribution — payout = mine * (pool - fee) / winningTotal. There is no hidden spread — the numbers on the receipt are the numbers the contract settles.</p>
 
         <p class="wp-body" style="font-weight:700;">Resolution &amp; void</p>
         <ul style="margin:0 0 10px 18px;padding:0;font-size:13.5px;line-height:1.65;color:var(--ink);">
-          <li><b>Resolve</b> — the owner names a winner; winning side collects, losing side's stake funds the prize and the fee.</li>
+          <li><b>Resolve</b> — the resolver proposes a winner; 1h dispute window (0.01 BOT bond); anyone finalizes if undisputed, admin overrides if disputed.</li>
           <li><b>Void</b> — a market with zero(ish) volume, or a winning pool below the set minimum threshold, is voided and stakes are returned. The threshold is <b>pre-committed on-chain</b> before betting closes — the owner cannot tighten it to force a void after losing.</li>
         </ul>
 
@@ -456,13 +457,14 @@
         </table>
 
         <p class="wp-body" style="font-weight:700;">Betting flow</p>
-        <div class="wp-flow">owner: createMarket(duration, feeBps)
-bet:   placeBet(market, side, amount)      ── BOT or ERC-20
-board: odds board reads live pools ──► fee / payout / net forecast
+        <div class="wp-flow">admin: createMarket(duration, feeBps, question)
+bet:   bet(market, side){value}           ── native BOT only v1
+board: getMarkets(ids) batch read ──► fee / payout / net forecast
 close: market expires
-owner: resolve(market, winner)             ── or void under threshold
-settle: winners withdraw; losing stake funds prize + fee
-owner: withdrawFees(market)                ── after full claim</div>
+resolver: proposeResolution(market, winner) ── 1h window
+anyone: dispute(market){bond} / finalizeResolution(market)
+settle: winners withdraw pro-rata from (pool - fee)
+admin: withdrawFees(market) ── full claim or 30d; sweepUnclaimed 180d</div>
       </div>
 
       <div class="wp-sec">

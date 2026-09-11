@@ -8,7 +8,7 @@ Version 1 · Testnet 968 · September 2026
 
 ## Abstract
 
-MicroPredict is an on-chain prediction market that lets anyone list a binary event, take either side of it, and get paid out by the pool without trusting an intermediary, a price feed, or a bookmaker's word. Markets take deposits in native BOT or ERC-20, split into two branch pools (A / B), publish fee-honest odds computed live from actual pool sizes, resolve to a winner, and settle automatically. Zero-volume markets and too-small winning pools are voided under a pre-committed threshold the owner cannot silently change per-market after money is in.
+MicroPredict is an on-chain prediction market that lets anyone list a binary event, take either side of it, and get paid out by the pool without trusting an intermediary, a price feed, or a bookmaker's word. Markets take deposits in native BOT (v1; ERC-20 support is roadmap, not yet live), split into two branch pools (A / B), publish fee-honest odds computed live from actual pool sizes, resolve to a winner via resolver proposal + 1h dispute window, and settle automatically. Zero-volume markets and too-small winning pools are voided under a pre-committed threshold the admin cannot silently change per-market after money is in.
 
 It is built for the memecoin beats on BOT Chain: "does BOPE survive the week", "does HIRO clear a liquidity threshold by Friday". Small stakes, fast clocks, honest math.
 
@@ -30,7 +30,7 @@ Any owner action creates a market with a fixed clock:
 
 - **Duration** — set in hours; the market closes when it expires.
 - **Fee (bps)** — a single, visible fee applied at settlement, capped well below abuse.
-- **Increments** — bets are staked in either native BOT or the listed ERC-20.
+- **Increments** — bets are staked in native BOT (min 0.001 BOT).
 
 ### Two pools, live odds
 
@@ -42,11 +42,11 @@ Bettors see:
 - **Payout if win** — what that side returns on top of the stake.
 - **Net** — the honest profit-or-loss after fees.
 
-The forecast is **fee-honest**: the losing side always subsidizes the fee on the winning side, exactly as the formula reads. There is no hidden spread — the numbers on the receipt are the numbers the contract settles.
+The forecast is **fee-honest**: fee = pool * feeBps / 10000 is taken from the whole pool (winners + losers) before pro-rata distribution — payout = mine * (pool - fee) / winningTotal. Winners share the fee pro-rata out of their winnings; there is no hidden spread — the numbers on the receipt are the numbers the contract settles.
 
 ### Resolution & void
 
-- **Resolve** — the owner names a winner; winning side collects, losing side's stake funds the prize and the fee.
+- **Resolve** — the resolver proposes a winner; 1h dispute window (0.01 BOT bond); anyone can finalize if undisputed, admin overrides if disputed. Winning side collects pro-rata from pool minus fee.
 - **Void** — a market with zero(ish) volume, or a winning pool below the set minimum threshold, is voided and stakes are returned. The threshold is **pre-committed on-chain** before betting closes — the owner cannot tighten it to force a void after losing.
 
 ### Fee withdrawal
@@ -65,13 +65,14 @@ Accrued fees sit in the market until it is fully claimed, then the owner withdra
 ### Betting flow
 
 ```
-owner: createMarket(duration, feeBps)
-bet:   placeBet(market, side, amount)      ── BOT or ERC-20
-board: odds board reads live pools ──► fee / payout / net forecast
+admin: createMarket(duration, feeBps, question)
+bet:   bet(market, side) {value}           ── native BOT only v1
+board: getMarkets(ids) batch read ──► fee / payout / net forecast
 close: market expires
-owner: resolve(market, winner)             ── or void under threshold
-settle: winners withdraw; losing stake funds prize + fee
-owner: withdrawFees(market)                ── after full claim
+resolver: proposeResolution(market, winner) ── starts 1h window
+anyone: dispute(market){bond} / finalizeResolution(market)
+settle: winners withdraw pro-rata from (pool - fee)
+admin: withdrawFees(market)                ── after full claim or 30d timeout; sweepUnclaimed after 180d
 ```
 
 ## Security & fairness model

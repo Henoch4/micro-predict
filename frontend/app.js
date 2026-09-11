@@ -2,30 +2,43 @@ import * as ethers from 'ethers';
 import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
-const PRED_DEFAULT=`0xb71588BE36603e48F114F97b07c42602f50144f0`;
+const PRED_DEFAULT=`0xf9E816eCA32d5a086b9D64480832f3aa4BA25A7a`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
 const CHAIN_ID=0x3c8;
 
 const PRED_ABI=[
 `function owner() view returns (address)`,
+`function resolver() view returns (address)`,
 `function pendingOwner() view returns (address)`,
 `function pendingOwnerAt() view returns (uint256)`,
 `function marketCount() view returns (uint256)`,
 `function collectedFees() view returns (uint256)`,
 `function markets(uint256) view returns (uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps)`,
+`function marketQuestion(uint256) view returns (string)`,
 `function stakes(uint256,address,uint8) view returns (uint256)`,
 `function marketFee(uint256) view returns (uint256)`,
 `function voidThreshold(uint256) view returns (uint256)`,
-`function createMarket(uint64,uint256) returns (uint256)`,
+`function createMarket(uint64,uint256,string) returns (uint256)`,
 `function bet(uint256,uint8) payable`,
 `function resolve(uint256,uint8)`,
+`function proposeResolution(uint256,uint8)`,
+`function dispute(uint256) payable`,
+`function finalizeResolution(uint256)`,
+`function adminResolve(uint256,uint8)`,
 `function claim(uint256)`,
 `function ownerWithdrawFees(uint256,address)`,
+`function sweepUnclaimed(uint256,address)`,
 `function setVoidThreshold(uint256,uint256)`,
 `function proposeOwner(address)`,
 `function acceptOwner()`,
+`function setResolver(address)`,
 `function OWNERSHIP_TIMELOCK() view returns (uint256)`,
+`function DISPUTE_WINDOW() view returns (uint256)`,
+`function getMarkets(uint256[]) view returns (tuple(uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps)[])`,
+`function getUserStakes(uint256[],address) view returns (uint256[],uint256[])`,
+`function proposalExists(uint256) view returns (bool)`,
+`function disputed(uint256) view returns (bool)`,
 ];
 
 let signer=null;
@@ -239,42 +252,35 @@ async function scan(){
       return;
     }
 
-    const mc=new ethers.MulticallContract(
-      v.target,
-      [
-        `function marketCount() view returns (uint256)`,
-        `function markets(uint256) view returns (uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps)`,
-        `function owner() view returns (address)`,
-        `function collectedFees() view returns (uint256)`,
-      ],
-      v.runner
-    );
-
-    const calls=[];
-    for(let i=1;i<=n;i++){ calls.push({fragment: mc.interface.getFunction(`markets`), args: [i]}); }
-    calls.push({fragment: mc.interface.getFunction(`owner`), args: []});
-    calls.push({fragment: mc.interface.getFunction(`collectedFees`), args: []});
-
-    const results=await mc.aggregate(calls);
-    const markets=results.slice(0,n).map(r=>r[0]);
-    const ownerAddr=results[n][0];
-    const collectedFees=results[n+1][0];
+    // 1 RPC for all markets via getMarkets view (replaces O(n) loop + broken MulticallContract)
+    const ids=Array.from({length:n},(_,i)=>i+1);
+    const [marketsArr, ownerAddr, collectedFees] = await Promise.all([
+      v.getMarkets(ids),
+      v.owner(),
+      v.collectedFees(),
+    ]);
+    // Questions are separate strings — parallel fetch, non-blocking fallback to #N
+    let questions=[];
+    try{
+      questions=await Promise.all(ids.map(id=>v.marketQuestion(id).catch(()=>"")));
+    }catch{ questions=ids.map(()=>""); }
 
     const sorted=[];
     for(let i=0;i<n;i++){
-      sorted.push({id:i+1,m:markets[i]});
+      sorted.push({id:i+1,m:marketsArr[i],q:questions[i]||""});
     }
     sorted.sort((a,b)=>{
       const ap=a.m.resolved?9:0, bp=b.m.resolved?9:0;
       return (ap-bp) || (Number(a.m.endTime)-Number(b.m.endTime));
     });
-    for(const {id,m} of sorted){
+    for(const {id,m,q} of sorted){
       const tr=document.createElement(`tr`);
       tr.className=`flap-row`;
       tr.style.animationDelay=(0.03*(id%20))+'s';
+      const title=q||`Market ${id}`;
       tr.innerHTML=`
         <td class="mkt-id">#${id}</td>
-        <td class="mkt-name">Market ${id}<div class="sub" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-dim);font-weight:400;">${Number(m.feeBps)} bps fee · min 0.001 BOT</div></td>
+        <td class="mkt-name">${title}<div class="sub" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-dim);font-weight:400;">${Number(m.feeBps)} bps fee · min 0.001 BOT</div></td>
         <td class="col-closes mkt-closes">${m.resolved?`—`:new Date(Number(m.endTime)*1000).toLocaleString()}</td>
         <td><span class="pool-chip a">${ethers.formatEther(m.total0)}</span></td>
         <td><span class="pool-chip b">${ethers.formatEther(m.total1)}</span></td>
@@ -383,29 +389,18 @@ async function refreshTickets(){
       return;
     }
 
-    const mc=new ethers.MulticallContract(
-      v.target,
-      [
-        `function markets(uint256) view returns (uint64 endTime, bool resolved, bool voided, uint8 winner, uint256 total0, uint256 total1, uint256 winningTotal, uint256 claimedTotal, uint256 feeBps)`,
-        `function stakes(uint256,address,uint8) view returns (uint256)`,
-      ],
-      v.runner
-    );
-
-    const calls=[];
-    for(let i=1;i<=n;i++){
-      calls.push({fragment: mc.interface.getFunction(`markets`), args: [i]});
-      calls.push({fragment: mc.interface.getFunction(`stakes`), args: [i,account,0]});
-      calls.push({fragment: mc.interface.getFunction(`stakes`), args: [i,account,1]});
-    }
-
-    const results=await mc.aggregate(calls);
+    // 2 RPCs total via batch views (replaces 3n individual calls)
+    const ids=Array.from({length:n},(_,i)=>i+1);
+    const [marketsArr, stakeRes] = await Promise.all([
+      v.getMarkets(ids),
+      v.getUserStakes(ids, account),
+    ]);
+    const s0arr=stakeRes[0], s1arr=stakeRes[1];
     let html=``;
     for(let i=1;i<=n;i++){
-      const idx=(i-1)*3;
-      const m=results[idx][0];
-      const s0=results[idx+1][0];
-      const s1=results[idx+2][0];
+      const m=marketsArr[i-1];
+      const s0=s0arr[i-1];
+      const s1=s1arr[i-1];
       if(s0>0n||s1>0n){
         const st=statusOf(m,now,true);
         const claimable=m.resolved;
@@ -460,10 +455,12 @@ function fillOfficeSelects(n){
 async function doCreate(){
   const durH=Number(el(`cmDur`).value);
   const feeBps=Number(el(`cmFee`).value);
+  const q=(el(`cmQ`)&&el(`cmQ`).value||"").trim()||`Market — ${durH}h`;
   if(!durH||durH*3600<60){ log(`create: duration must be ≥ 1 minute`); return; }
   const durSecs=BigInt(Math.floor(durH*3600));
-  await send(pred().createMarket(durSecs,feeBps),`create market (${durH}h)`);
+  await send(pred().createMarket(durSecs,feeBps,q),`create market (${durH}h)`);
   el(`cmDur`).value=``;
+  if(el(`cmQ`))el(`cmQ`).value=``;
 }
 async function doResolve(){
   const id=el(`rsMarket`).value;

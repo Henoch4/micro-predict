@@ -11,14 +11,14 @@ describe(`MicroPredict`, function () {
 
   it(`owner creates a market`, async function () {
     const { predict } = await deploy();
-    await expect(predict.createMarket(3600, 100)).to.emit(predict, `MarketCreated`);
+    await expect(predict.createMarket(3600, 100, "Will BOT close above $0.01?")).to.emit(predict, `MarketCreated`);
     expect(await predict.marketCount()).to.equal(1);
   });
 
   it(`takes bets, resolves and pays winners minus fee`, async function () {
     const { user1, user2, predict } = await deploy();
     const addr = await predict.getAddress();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
     await predict.connect(user2).bet(1, 1, { value: ethers.parseEther(`3`) });
     await ethers.provider.send(`evm_increaseTime`, [3601]);
@@ -32,11 +32,11 @@ describe(`MicroPredict`, function () {
 
   it(`reverts on bad bets and early resolve`, async function () {
     const { owner, user1, user2, predict } = await deploy();
-    await expect(predict.connect(user1).createMarket(3600, 100))
+    await expect(predict.connect(user1).createMarket(3600, 100, "Will BOT close above $0.01?"))
       .to.be.revertedWithCustomError(predict, `NotOwner`);
-    await expect(predict.createMarket(10, 100))
+    await expect(predict.createMarket(10, 100, "bad"))
       .to.be.revertedWithCustomError(predict, `BadTime`);
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await expect(predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`0.0001`) }))
       .to.be.revertedWithCustomError(predict, `SmallBet`);
     await expect(predict.resolve(1, 0))
@@ -53,7 +53,7 @@ describe(`MicroPredict`, function () {
 
   it(`owner withdraws collected fees`, async function () {
     const { owner, user1, predict } = await deploy();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
     await ethers.provider.send(`evm_increaseTime`, [3601]);
     await ethers.provider.send(`evm_mine`, []);
@@ -66,7 +66,7 @@ describe(`MicroPredict`, function () {
   it(`voids market with empty winning side and refunds stakes`, async function () {
     const { user1, user2, predict } = await deploy();
     const addr = await predict.getAddress();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
     await ethers.provider.send(`evm_increaseTime`, [3601]);
     await ethers.provider.send(`evm_mine`, []);
@@ -78,7 +78,7 @@ describe(`MicroPredict`, function () {
 
   it(`blocks fee withdrawal until every winner claimed`, async function () {
     const { owner, user1, user2, predict } = await deploy();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
     await predict.connect(user2).bet(1, 0, { value: ethers.parseEther(`3`) });
     await ethers.provider.send(`evm_increaseTime`, [3601]);
@@ -93,14 +93,14 @@ describe(`MicroPredict`, function () {
 
 it(`bars owner from betting`, async function () {
     const { predict } = await deploy();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await expect(predict.bet(1, 0, { value: ethers.parseEther(`1`) })).to.be.revertedWithCustomError(predict, `OwnerBet`);
   });
 
   it(`pre-committed void threshold voids thin markets with full refunds`, async function () {
     const { user1, user2, predict } = await deploy();
     const addr = await predict.getAddress();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await predict.setVoidThreshold(1, ethers.parseEther(`0.5`));
     await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`0.2`) });
     await predict.connect(user2).bet(1, 1, { value: ethers.parseEther(`0.3`) });
@@ -114,7 +114,7 @@ it(`bars owner from betting`, async function () {
 
   it(`winning side above threshold still resolves normally`, async function () {
     const { user1, user2, predict } = await deploy();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await predict.setVoidThreshold(1, ethers.parseEther(`0.5`));
     await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`2`) });
     await predict.connect(user2).bet(1, 1, { value: ethers.parseEther(`3`) });
@@ -126,7 +126,7 @@ it(`bars owner from betting`, async function () {
 
   it(`void threshold setter rejects markets that already have volume`, async function () {
     const { user1, predict } = await deploy();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
     await expect(predict.setVoidThreshold(1, ethers.parseEther(`0.5`)))
       .to.be.revertedWithCustomError(predict, `HasVolume`);
@@ -147,7 +147,7 @@ it(`bars owner from betting`, async function () {
 
   it(`timeout sweep allows fee withdrawal after 30 days even if unclaimed`, async function () {
     const { owner, user1, user2, predict } = await deploy();
-    await predict.createMarket(3600, 100);
+    await predict.createMarket(3600, 100, "Will BOT close above $0.01?");
     await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
     await predict.connect(user2).bet(1, 0, { value: ethers.parseEther(`3`) });
     await ethers.provider.send(`evm_increaseTime`, [3601]);
@@ -158,5 +158,79 @@ it(`bars owner from betting`, async function () {
     await ethers.provider.send(`evm_increaseTime`, [30 * 24 * 3600 + 1]);
     await ethers.provider.send(`evm_mine`, []);
     await expect(predict.ownerWithdrawFees(1, owner.address)).to.emit(predict, `FeesWithdrawn`);
+  });
+
+  it(`stores question + batch views work`, async function () {
+    const { user1, predict } = await deploy();
+    await predict.createMarket(3600, 100, "Does $BOPE close above $0.002 Friday?");
+    expect(await predict.marketQuestion(1)).to.equal("Does $BOPE close above $0.002 Friday?");
+    await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
+    const ms = await predict.getMarkets([1]);
+    expect(ms[0].total0).to.equal(ethers.parseEther(`1`));
+    const [s0, s1] = await predict.getUserStakes([1], user1.address);
+    expect(s0[0]).to.equal(ethers.parseEther(`1`));
+    expect(s1[0]).to.equal(0);
+  });
+
+  it(`admin/resolver split: only resolver proposes`, async function () {
+    const { owner, user1, user2, predict } = await deploy();
+    await predict.createMarket(3600, 100, "q");
+    await predict.setResolver(user1.address);
+    expect(await predict.resolver()).to.equal(user1.address);
+    await predict.connect(user2).bet(1, 0, { value: ethers.parseEther(`1`) });
+    await ethers.provider.send(`evm_increaseTime`, [3601]);
+    await ethers.provider.send(`evm_mine`, []);
+    await expect(predict.connect(user2).proposeResolution(1, 0))
+      .to.be.revertedWithCustomError(predict, `NotResolver`);
+    await expect(predict.connect(user1).proposeResolution(1, 0))
+      .to.emit(predict, `ResolutionProposed`);
+  });
+
+  it(`dispute window: propose -> dispute -> adminResolve override`, async function () {
+    const { owner, user1, user2, predict } = await deploy();
+    await predict.createMarket(3600, 100, "q");
+    await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
+    await predict.connect(user2).bet(1, 1, { value: ethers.parseEther(`2`) });
+    await ethers.provider.send(`evm_increaseTime`, [3601]);
+    await ethers.provider.send(`evm_mine`, []);
+    await predict.proposeResolution(1, 0);
+    await expect(predict.finalizeResolution(1))
+      .to.be.revertedWithCustomError(predict, `WindowActive`);
+    await predict.connect(user1).dispute(1, { value: ethers.parseEther(`0.01`) });
+    await expect(predict.finalizeResolution(1))
+      .to.be.revertedWithCustomError(predict, `IsDisputed`);
+    await predict.adminResolve(1, 1);
+    const m = await predict.markets(1);
+    expect(m.resolved).to.equal(true);
+    expect(m.winner).to.equal(1);
+  });
+
+  it(`finalize after window when undisputed`, async function () {
+    const { user1, user2, predict } = await deploy();
+    await predict.createMarket(3600, 100, "q");
+    await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
+    await predict.connect(user2).bet(1, 1, { value: ethers.parseEther(`2`) });
+    await ethers.provider.send(`evm_increaseTime`, [3601]);
+    await ethers.provider.send(`evm_mine`, []);
+    await predict.proposeResolution(1, 1);
+    await ethers.provider.send(`evm_increaseTime`, [3600 + 1]);
+    await ethers.provider.send(`evm_mine`, []);
+    await expect(predict.finalizeResolution(1)).to.emit(predict, `MarketResolved`);
+  });
+
+  it(`sweepUnclaimed after 180 days`, async function () {
+    const { owner, user1, user2, predict } = await deploy();
+    await predict.createMarket(3600, 100, "q");
+    await predict.connect(user1).bet(1, 0, { value: ethers.parseEther(`1`) });
+    await predict.connect(user2).bet(1, 0, { value: ethers.parseEther(`1`) });
+    await ethers.provider.send(`evm_increaseTime`, [3601]);
+    await ethers.provider.send(`evm_mine`, []);
+    await predict.resolve(1, 0);
+    await predict.connect(user1).claim(1);
+    await expect(predict.sweepUnclaimed(1, owner.address))
+      .to.be.revertedWithCustomError(predict, `SweepEarly`);
+    await ethers.provider.send(`evm_increaseTime`, [180 * 24 * 3600 + 1]);
+    await ethers.provider.send(`evm_mine`, []);
+    await expect(predict.sweepUnclaimed(1, owner.address)).to.emit(predict, `Swept`);
   });
 });
