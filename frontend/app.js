@@ -39,6 +39,11 @@ const PRED_ABI=[
 `function getUserStakes(uint256[],address) view returns (uint256[],uint256[])`,
 `function proposalExists(uint256) view returns (bool)`,
 `function disputed(uint256) view returns (bool)`,
+`event MarketCreated(uint256 indexed id, uint64 endTime, uint256 feeBps, string question)`,
+`event BetPlaced(uint256 indexed id, address indexed user, uint8 outcome, uint256 amount)`,
+`event MarketResolved(uint256 indexed id, uint8 winner)`,
+`event MarketVoided(uint256 indexed id)`,
+`event Claimed(uint256 indexed id, address indexed user, uint256 payout)`,
 ];
 
 let signer=null;
@@ -511,24 +516,77 @@ async function refreshTickets(){
   }
 }
 
+function paintBoard(box, rows, marketCount){
+  if(!rows.length){
+    box.innerHTML=`<div class="empty-note">${marketCount||0} markets live — no bets yet. Place the first bet to top the board.</div>`;
+    return;
+  }
+  box.innerHTML=rows.slice(0,25).map((p,i)=>
+    `<div class="held-item"><div><div class="desc">#${i+1} <b>${shorten(p.address)}</b> · ${p.points} pts</div>`+
+    `<div class="meta">${p.volumeBOT} BOT vol · ${p.wins}/${p.markets} wins (${p.winRate}%) · ROI ${p.roiPct}%</div></div></div>`
+  ).join(``);
+}
+
 async function renderLeaderboard(){
   const box=el(`leaderList`);
   if(!box)return;
+  // Live: compute from chain logs in-browser. No manual regen, no server.
+  try{
+    const v=pred();
+    const [created, bets, resolved, voided, claimed]=await Promise.all([
+      v.queryFilter(`MarketCreated`,0),
+      v.queryFilter(`BetPlaced`,0),
+      v.queryFilter(`MarketResolved`,0),
+      v.queryFilter(`MarketVoided`,0),
+      v.queryFilter(`Claimed`,0),
+    ]);
+    const mk={};
+    for(const e of created)mk[Number(e.args.id)]={t0:0n,t1:0n,winner:null,voided:false};
+    for(const e of voided)if(mk[Number(e.args.id)])mk[Number(e.args.id)].voided=true;
+    for(const e of resolved)if(mk[Number(e.args.id)])mk[Number(e.args.id)].winner=Number(e.args.winner);
+    const st={};
+    for(const e of bets){
+      const id=Number(e.args.id), u=e.args.user.toLowerCase(), o=Number(e.args.outcome);
+      if(!mk[id])mk[id]={t0:0n,t1:0n,winner:null,voided:false};
+      if(o===0)mk[id].t0+=e.args.amount; else mk[id].t1+=e.args.amount;
+      st[id]=st[id]||{}; st[id][u]=st[id][u]||[0n,0n]; st[id][u][o]+=e.args.amount;
+    }
+    const cl={};
+    for(const e of claimed){ const u=e.args.user.toLowerCase(); cl[u]=(cl[u]||0n)+e.args.payout; }
+    const pl={};
+    const touch=(u)=>pl[u]=pl[u]||{address:u,vol:0n,set:new Set(),wins:0,pts:0};
+    for(const e of bets){ const u=e.args.user.toLowerCase(); const p=touch(u); p.vol+=e.args.amount; p.set.add(Number(e.args.id)); p.pts+=Number(e.args.amount)/1e16; }
+    for(const id of Object.keys(mk)){
+      const m=mk[id];
+      if(m.winner===null||m.voided)continue;
+      const wt=m.winner===0?m.t0:m.t1, lt=m.winner===0?m.t1:m.t0;
+      if(!(wt<lt))continue;
+      for(const u of Object.keys(st[id]||{})){
+        if((st[id][u][m.winner]||0n)>0n)touch(u).pts+=(Number(st[id][u][m.winner])/1e16)*0.5;
+      }
+    }
+    for(const id of Object.keys(mk)){
+      const m=mk[id];
+      if(m.winner===null||m.voided)continue;
+      for(const u of Object.keys(st[id]||{}))if((st[id][u][m.winner]||0n)>0n)touch(u).wins+=1;
+    }
+    const rows=Object.values(pl).map((p)=>{
+      const vol=Number(p.vol)/1e18, c=Number(cl[p.address]||0n)/1e18;
+      return {address:p.address, volumeBOT:Math.round(vol*1e6)/1e6, markets:p.set.size, wins:p.wins,
+        winRate:p.set.size?Math.round(p.wins/p.set.size*1000)/10:0,
+        claimedBOT:Math.round(c*1e6)/1e6, roiPct:vol>0?Math.round((c-vol)/vol*1000)/10:0,
+        points:Math.round(p.pts*100)/100};
+    }).sort((a,b)=>b.points-a.points);
+    paintBoard(box, rows, Object.keys(mk).length);
+    return;
+  }catch(e){ /* fall through to static JSON */ }
   try{
     const r=await fetch(`leaderboard.json`,{cache:`no-store`});
     if(!r.ok)throw new Error(`http `+r.status);
     const d=await r.json();
-    const rows=(d.players||[]).slice(0,25);
-    if(!rows.length){
-      box.innerHTML=`<div class="empty-note">${d.marketCount||0} markets live — no bets yet. Place the first bet to top the board.</div>`;
-      return;
-    }
-    box.innerHTML=rows.map((p,i)=>
-      `<div class="held-item"><div><div class="desc">#${i+1} <b>${shorten(p.address)}</b> · ${p.points} pts</div>`+
-      `<div class="meta">${p.volumeBOT} BOT vol · ${p.wins}/${p.markets} wins (${p.winRate}%) · ROI ${p.roiPct}%</div></div></div>`
-    ).join(``);
+    paintBoard(box, d.players||[], d.marketCount||0);
   }catch(e){
-    box.innerHTML=`<div class="empty-note">leaderboard unavailable — regenerate via scripts/leaderboard.js</div>`;
+    box.innerHTML=`<div class="empty-note">leaderboard unavailable — RPC logs blocked and no snapshot. Retry shortly.</div>`;
   }
 }
 
