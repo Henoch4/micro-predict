@@ -513,6 +513,17 @@ owner: withdrawFees(market)                ── after full claim</div>
   </footer>
 </div>
 
+<script>
+window.addEventListener('DOMContentLoaded',function(){
+  try{
+    var eth=window.ethereum;
+    if(eth&&eth.providers){
+      var mm=eth.providers.find(function(p){return p.isMetaMask});
+      window.ethereum=mm||eth.providers[0];
+    }
+  }catch(e){}
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
