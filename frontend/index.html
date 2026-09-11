@@ -27,7 +27,9 @@
     --radius-lg:10px;
     --radius-sm:4px;
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :focus{outline:none;}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:var(--radius-sm);}
   html,body{margin:0;padding:0;}
   body{
     background:var(--casing-deep);
@@ -558,7 +560,7 @@ admin: withdrawFees(market) ── full claim or 30d; sweepUnclaimed 180d</div>
 
   <footer>
     <div class="addr-field"><span>contract</span><input id="paddr" title="MicroPredict deployment address" size="44"></div>
-    <span><a href="#" id="clearLog">clear log</a> · <span id="rpcLabel">rpc.rpc.bohr.life</span></span>
+    <span><a href="#" id="clearLog">clear log</a> · <a id="explorerLink" href="https://scan.bohr.life" target="_blank" rel="noopener">view on explorer</a></span>
   </footer>
 </div>
 

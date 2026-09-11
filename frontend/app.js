@@ -683,6 +683,10 @@ async function doFees(){
   await send(pred().ownerWithdrawFees(Number(id),account),`withdraw fees #${id}`);
 }
 
+function updateExplorerLink(){
+  const a=(el(`paddr`).value.trim()||PRED_DEFAULT);
+  el(`explorerLink`).href=EXPLORER+`/address/`+a;
+}
 function updateBackofficeVisibility(){
   const me=(account||``).toLowerCase();
   const isOwner=!!account&&!!state.owner&&me===state.owner;
@@ -714,7 +718,8 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`thMarket`).addEventListener(`change`,refreshThreshold);
   el(`fwSubmit`).addEventListener(`click`,doFees);
   el(`clearLog`).addEventListener(`click`,(e)=>{ e.preventDefault(); el(`log`).innerHTML=``; });
-  el(`paddr`).addEventListener(`change`,scan);
+  el(`paddr`).addEventListener(`change`,()=>{ updateExplorerLink(); scan(); });
+  updateExplorerLink();
 
   setSide(0);
   updateBackofficeVisibility();
