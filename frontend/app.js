@@ -511,6 +511,27 @@ async function refreshTickets(){
   }
 }
 
+async function renderLeaderboard(){
+  const box=el(`leaderList`);
+  if(!box)return;
+  try{
+    const r=await fetch(`leaderboard.json`,{cache:`no-store`});
+    if(!r.ok)throw new Error(`http `+r.status);
+    const d=await r.json();
+    const rows=(d.players||[]).slice(0,25);
+    if(!rows.length){
+      box.innerHTML=`<div class="empty-note">${d.marketCount||0} markets live — no bets yet. Place the first bet to top the board.</div>`;
+      return;
+    }
+    box.innerHTML=rows.map((p,i)=>
+      `<div class="held-item"><div><div class="desc">#${i+1} <b>${shorten(p.address)}</b> · ${p.points} pts</div>`+
+      `<div class="meta">${p.volumeBOT} BOT vol · ${p.wins}/${p.markets} wins (${p.winRate}%) · ROI ${p.roiPct}%</div></div></div>`
+    ).join(``);
+  }catch(e){
+    box.innerHTML=`<div class="empty-note">leaderboard unavailable — regenerate via scripts/leaderboard.js</div>`;
+  }
+}
+
 async function refreshThreshold(){
   const id=el(`thMarket`).value;
   if(!id){ el(`thCurrent`).textContent=`—`; return; }
@@ -592,7 +613,8 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   setSide(0);
   updateBackofficeVisibility();
   scan();
-  setInterval(()=>{ scan(); refreshTickets(); },20000);
+  renderLeaderboard();
+  setInterval(()=>{ scan(); refreshTickets(); renderLeaderboard(); },20000);
   setTimeout(async ()=>{
     try{
       if(!signer&&modal.getIsConnectedState()){
