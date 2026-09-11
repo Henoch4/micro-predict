@@ -280,10 +280,7 @@
     </div>
     <div class="head-right">
       <span id="walletState">not connected</span>
-      <select id="roleSelect" title="Preview as">
-        <option value="bettor">Preview: bettor</option>
-        <option value="owner">Preview: owner</option>
-      </select>
+      <span id="ownerBadge" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--side-a);border:1px solid var(--side-a);padding:3px 8px;border-radius:3px;">owner</span>
       <button class="btn primary" id="connectBtn">Connect wallet</button>
     </div>
   </header>
@@ -308,6 +305,38 @@
         Live reads from the contract — <button class="btn ghost" id="refreshBtn" style="padding:2px 8px;font-size:11px;">refresh</button>
         <span style="float:right;" id="scanStats"></span>
       </p>
+    </div>
+  </section>
+
+  <section id="backoffice">
+    <p class="section-label">Back office — owner only</p>
+    <div class="office">
+      <div class="office-grid">
+        <div class="office-card">
+          <h4>Create market</h4>
+          <div class="field"><label>Duration (hours)</label><input id="cmDur" type="number" min="1" value="24"></div>
+          <div class="field"><label>Fee (bps, max 500)</label><input id="cmFee" type="number" min="0" max="500" value="100"></div>
+          <button class="btn" id="cmSubmit">Create market</button>
+        </div>
+        <div class="office-card">
+          <h4>Resolve market</h4>
+          <div class="field"><label>Market</label><select id="rsMarket"></select></div>
+          <div class="field"><label>Winner</label><select id="rsWinner"><option value="0">Side A</option><option value="1">Side B</option></select></div>
+          <button class="btn" id="rsSubmit">Resolve</button>
+        </div>
+        <div class="office-card">
+          <h4>Set void threshold</h4>
+          <div class="field"><label>Market (zero volume only)</label><select id="thMarket"></select></div>
+          <div class="field"><label>Min winning pool (BOT)</label><input id="thAmt" type="number" min="0" step="0.01" value="0.5"></div>
+          <button class="btn" id="thSubmit">Set threshold</button>
+          <p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);margin:8px 2px 0;word-break:break-all;">current: <span id="thCurrent">—</span></p>
+        </div>
+        <div class="office-card">
+          <h4>Withdraw fees</h4>
+          <div class="field"><label>Market (fully claimed only)</label><select id="fwMarket"></select></div>
+          <button class="btn" id="fwSubmit">Withdraw fees</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -469,38 +498,6 @@ owner: withdrawFees(market)                ── after full claim</div>
 
       <div class="wp-sec">
         <p class="wp-disc">This document describes a prediction market on BOT Chain testnet (968). Markets are binary games with real stakes and real loss risk; past outcomes do not predict future ones. Nothing here is financial advice, and markets with small liquidity may be voided under their pre-committed thresholds. Bet only what you can afford to lose.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="backoffice">
-    <p class="section-label">Back office — owner only</p>
-    <div class="office">
-      <div class="office-grid">
-        <div class="office-card">
-          <h4>Create market</h4>
-          <div class="field"><label>Duration (hours)</label><input id="cmDur" type="number" min="1" value="24"></div>
-          <div class="field"><label>Fee (bps, max 500)</label><input id="cmFee" type="number" min="0" max="500" value="100"></div>
-          <button class="btn" id="cmSubmit">Create market</button>
-        </div>
-        <div class="office-card">
-          <h4>Resolve market</h4>
-          <div class="field"><label>Market</label><select id="rsMarket"></select></div>
-          <div class="field"><label>Winner</label><select id="rsWinner"><option value="0">Side A</option><option value="1">Side B</option></select></div>
-          <button class="btn" id="rsSubmit">Resolve</button>
-        </div>
-        <div class="office-card">
-          <h4>Set void threshold</h4>
-          <div class="field"><label>Market (zero volume only)</label><select id="thMarket"></select></div>
-          <div class="field"><label>Min winning pool (BOT)</label><input id="thAmt" type="number" min="0" step="0.01" value="0.5"></div>
-          <button class="btn" id="thSubmit">Set threshold</button>
-          <p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);margin:8px 2px 0;word-break:break-all;">current: <span id="thCurrent">—</span></p>
-        </div>
-        <div class="office-card">
-          <h4>Withdraw fees</h4>
-          <div class="field"><label>Market (fully claimed only)</label><select id="fwMarket"></select></div>
-          <button class="btn" id="fwSubmit">Withdraw fees</button>
-        </div>
       </div>
     </div>
   </section>

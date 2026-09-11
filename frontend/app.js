@@ -109,11 +109,13 @@ modal.subscribeAccount(async (state)=>{
       try{
         await syncFromProvider(wp);
         updateConnectedUI();
+        updateBackofficeVisibility();
         log(`connected `+account);
         refreshTickets();
       }catch(e){log(`connect failed: `+(e.reason||e.shortMessage||e.message));}
     }else{
       updateConnectedUI();
+      updateBackofficeVisibility();
       log(`connected `+account);
       refreshTickets();
     }
@@ -122,6 +124,7 @@ modal.subscribeAccount(async (state)=>{
     const was=!!account;
     account=null;signer=null;
     updateDisconnectedUI();
+    updateBackofficeVisibility();
     if(was){log(`disconnected`);refreshTickets();}
     if(_connectResolve){_connectResolve(false);_connectResolve=null;}
   }
@@ -146,7 +149,7 @@ function onConnectClick(){
   connect();
 }
 
-const state={ sel:0, side:0 };
+const state={ sel:0, side:0, owner:null };
 
 function log(m){
   const el=document.getElementById(`log`);
@@ -247,7 +250,10 @@ async function scan(){
       tr.addEventListener(`click`,()=>select(id));
       body.appendChild(tr);
     }
-    el(`scanStats`).textContent=n+` markets · owner ${shorten(await v.owner())} · fees ${ethers.formatEther(await v.collectedFees())} BOT`;
+    const ownerAddr=await v.owner();
+    state.owner=ownerAddr.toLowerCase();
+    updateBackofficeVisibility();
+    el(`scanStats`).textContent=n+` markets · owner ${shorten(ownerAddr)} · fees ${ethers.formatEther(await v.collectedFees())} BOT`;
     if(state.sel>n)select(0);
     fillOfficeSelects(n);
     if(n)updateForecast();
@@ -422,8 +428,10 @@ async function doFees(){
   await send(pred().ownerWithdrawFees(Number(id),account),`withdraw fees #${id}`);
 }
 
-function roleChanged(){
-  el(`backoffice`).style.display=el(`roleSelect`).value===`owner`?`block`:`none`;
+function updateBackofficeVisibility(){
+  const isOwner=!!account&&!!state.owner&&account.toLowerCase()===state.owner;
+  el(`backoffice`).style.display=isOwner?`block`:`none`;
+  el(`ownerBadge`).style.display=isOwner?`inline-block`:`none`;
 }
 
 document.addEventListener(`DOMContentLoaded`,()=>{
@@ -434,7 +442,6 @@ document.addEventListener(`DOMContentLoaded`,()=>{
 
   el(`connectBtn`).addEventListener(`click`,onConnectClick);
   el(`refreshBtn`).addEventListener(`click`,scan);
-  el(`roleSelect`).addEventListener(`change`,roleChanged);
   el(`sideA`).addEventListener(`click`,()=>setSide(0));
   el(`sideB`).addEventListener(`click`,()=>setSide(1));
   el(`betAmt`).addEventListener(`input`,updateForecast);
@@ -448,7 +455,7 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`paddr`).addEventListener(`change`,scan);
 
   setSide(0);
-  roleChanged();
+  updateBackofficeVisibility();
   scan();
   setInterval(()=>{ scan(); refreshTickets(); },20000);
   setTimeout(async ()=>{
@@ -458,7 +465,8 @@ document.addEventListener(`DOMContentLoaded`,()=>{
         if(wp){
           await syncFromProvider(wp);
           updateConnectedUI();
-          log(`session restored `+account);
+          updateBackofficeVisibility();
+          log(`connected `+account);
           refreshTickets();
         }
       }
