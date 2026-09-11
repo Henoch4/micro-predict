@@ -513,18 +513,15 @@ owner: withdrawFees(market)                ── after full claim</div>
   </footer>
 </div>
 
-<script>
-window.addEventListener('DOMContentLoaded',function(){
-  try{
-    var eth=window.ethereum;
-    if(eth&&eth.providers){
-      var mm=eth.providers.find(function(p){return p.isMetaMask});
-      window.ethereum=mm||eth.providers[0];
-    }
-  }catch(e){}
-});
+<script type="importmap">
+{
+  "imports": {
+    "ethers": "https://esm.sh/ethers@6.13.2",
+    "@reown/appkit": "https://esm.sh/@reown/appkit@1.8.21",
+    "@reown/appkit-adapter-ethers": "https://esm.sh/@reown/appkit-adapter-ethers@1.8.21"
+  }
+}
 </script>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
-<script src="app.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
