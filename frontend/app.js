@@ -215,6 +215,24 @@ async function connect(){
 }
 function shorten(a){ return a ? a.slice(0,6)+`…`+a.slice(-4) : ``; }
 
+function mapTxError(e, fallback){
+  const name=e?.errorName||e?.reason||e?.shortMessage||``;
+  const code=e?.code||e?.error?.code||``;
+  if(/SmallBet/i.test(name))return `amount must be ≥ 0.001 BOT`;
+  if(/Ended/i.test(name))return `market already closed`;
+  if(/Done/i.test(name))return `market resolved or in dispute — betting closed`;
+  if(/OwnerBet/i.test(name))return `owner / resolver wallets cannot bet — use a bettor wallet`;
+  if(/NoMarket/i.test(name))return `market does not exist on this contract`;
+  if(/BadOutcome/i.test(name))return `invalid side`;
+  if(/NotEnded/i.test(name))return `market has not ended yet`;
+  if(code===`CALL_EXCEPTION`||/missing revert data|CALL_EXCEPTION/i.test(e?.message||``)){
+    return `simulation failed with no reason from RPC — usually insufficient BOT for stake + gas, wrong network, or market just closed. Check balance, chain 968, and market status.`;
+  }
+  if(/insufficient funds/i.test(e?.message||``))return `insufficient BOT — need stake + gas`;
+  if(/user rejected|rejected/i.test(e?.message||``))return `rejected in wallet`;
+  return fallback||((e?.shortMessage||e?.message||`tx failed`).split(`\n`)[0]);
+}
+
 async function send(promise,label){
   try{
     const tx=await promise;
@@ -226,8 +244,10 @@ async function send(promise,label){
     scan(); refreshTickets();
   }catch(e){
     document.title=`MicroPredict — BOT Chain odds board`;
-    log(`✗ `+label+` failed: `+(e.reason||e.shortMessage||(e.message||e).split(`\n`)[0]));
-    throw e;
+    const msg=mapTxError(e, label+` failed`);
+    log(`✗ `+label+` failed: `+msg);
+    err(msg);
+    return;
   }
 }
 
@@ -295,6 +315,7 @@ async function scan(){
     if(state.sel>n)select(0);
     fillOfficeSelects(n);
     if(n)updateForecast();
+    betReadiness().then(refreshBetButton).catch(()=>{});
   }catch(e){
     log(`scan failed: `+(e.reason||e.shortMessage||(e.message||e).split(`\n`)[0]));
   }
@@ -317,6 +338,7 @@ function select(id){
   el(`slipTitle`).textContent=`Market #${id}`;
   el(`slipSub`).textContent=`side ${state.side===0?`A`:`B`} selected`;
   updateForecast();
+  betReadiness().then(refreshBetButton).catch(()=>{});
 }
 
 function setSide(s){
@@ -326,6 +348,7 @@ function setSide(s){
   el(`sideA`).classList.toggle(`a`,true);
   el(`sideB`).classList.toggle(`b`,true);
   updateForecast();
+  betReadiness().then(refreshBetButton).catch(()=>{});
 }
 
 async function forecastFor(id,stake,outcome){
@@ -358,16 +381,76 @@ async function updateForecast(){
   }
 }
 
-async function doBet(){
-  if(!state.sel){ err(`place: pick a market from the board first`); return; }
-  if(!signer){ err(`place: connect a wallet first`); await connect(); if(!signer)return; }
+const MIN_BET_WEI=ethers.parseEther(`0.001`);
+const GAS_RESERVE_WEI=ethers.parseEther(`0.0005`);
+
+async function betReadiness(){
+  // Returns {ok, reason} — pure preflight, no tx. Used by button state + doBet.
+  if(!state.sel)return {ok:false,reason:`pick a market from the board first`};
   const amt=stakeWei();
-  if(amt<=0n){ err(`place: amount must be > 0`); return; }
+  if(amt<=0n)return {ok:false,reason:`enter an amount`};
+  if(amt<MIN_BET_WEI)return {ok:false,reason:`amount must be ≥ 0.001 BOT`};
+  if(!signer||!account)return {ok:false,reason:`connect a wallet first`};
+  try{
+    const net=await signer.provider.getNetwork();
+    if(Number(net.chainId)!==968)return {ok:false,reason:`wrong network — switch wallet to BOT testnet 968`};
+  }catch{ return {ok:false,reason:`wallet network unreadable — reconnect`}; }
+  const v=pred();
+  let m;
+  try{ m=await v.markets(state.sel); }
+  catch{ return {ok:false,reason:`cannot read market — wrong contract or RPC down`}; }
+  if(m.endTime===0n)return {ok:false,reason:`market does not exist on this contract`};
+  if(m.resolved)return {ok:false,reason:`market already settled`};
+  try{ if(await v.proposalExists(state.sel))return {ok:false,reason:`market in dispute — betting closed`}; }catch{}
+  if(Math.floor(Date.now()/1000)>=Number(m.endTime))return {ok:false,reason:`market closed — awaiting resolution`};
+  try{
+    const [o,r]=await Promise.all([v.owner(),v.resolver().catch(()=>`0x0000000000000000000000000000000000000000`)]);
+    if(account.toLowerCase()===o.toLowerCase()||account.toLowerCase()===r.toLowerCase())
+      return {ok:false,reason:`owner / resolver cannot bet — switch to a bettor wallet`};
+  }catch{}
+  try{
+    const bal=await signer.provider.getBalance(account);
+    if(bal<amt+GAS_RESERVE_WEI)
+      return {ok:false,reason:`insufficient BOT — have ${ethers.formatEther(bal)}, need ${ethers.formatEther(amt)} + gas`};
+  }catch{ return {ok:false,reason:`cannot read balance — reconnect wallet`}; }
+  return {ok:true,amt};
+}
+
+function refreshBetButton(hint){
+  const b=el(`placeBetBtn`);
+  if(!b)return;
+  if(b.disabled&&b.dataset.busy===`1`)return;
+  if(!hint){ b.disabled=false; b.textContent=`Place bet`; return; }
+  b.disabled=!hint.ok;
+  b.textContent=hint.ok?`Place bet`:hint.reason;
+  b.title=hint.ok?``:hint.reason;
+}
+
+async function doBet(){
   el(`betError`).style.display=`none`;
-  el(`placeBetBtn`).disabled=true;
+  if(!signer){ err(`connect a wallet first`); refreshBetButton({ok:false,reason:`connect a wallet first`}); await connect(); if(!signer)return; }
+  const ready=await betReadiness();
+  refreshBetButton(ready);
+  if(!ready.ok){ err(`place: `+ready.reason); return; }
+  const amt=ready.amt;
+  // staticCall first: surfaces typed custom errors before gas estimation
+  try{
+    await pred().bet.staticCall(state.sel,state.side,{value:amt});
+  }catch(e){
+    const msg=mapTxError(e,`simulation rejected`);
+    err(`place: `+msg); log(`✗ place bet #${state.sel} staticCall: `+msg);
+    refreshBetButton({ok:false,reason:msg});
+    return;
+  }
+  const b=el(`placeBetBtn`);
+  b.disabled=true; b.dataset.busy=`1`; b.textContent=`Confirm in wallet…`;
   try{
     await send(pred().bet(state.sel,state.side,{value:amt}),`place bet #${state.sel}`);
-  }finally{ el(`placeBetBtn`).disabled=false; }
+  }finally{
+    b.dataset.busy=``;
+    const r=await betReadiness().catch(()=>({ok:true}));
+    refreshBetButton(r.ok?null:r);
+  }
 }
 function err(m){
   const e=el(`betError`);
@@ -496,7 +579,7 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`refreshBtn`).addEventListener(`click`,scan);
   el(`sideA`).addEventListener(`click`,()=>setSide(0));
   el(`sideB`).addEventListener(`click`,()=>setSide(1));
-  el(`betAmt`).addEventListener(`input`,updateForecast);
+  el(`betAmt`).addEventListener(`input`,()=>{ updateForecast(); betReadiness().then(refreshBetButton).catch(()=>{}); });
   el(`placeBetBtn`).addEventListener(`click`,doBet);
   el(`cmSubmit`).addEventListener(`click`,doCreate);
   el(`rsSubmit`).addEventListener(`click`,doResolve);
