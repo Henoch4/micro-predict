@@ -2,10 +2,30 @@ import * as ethers from 'ethers';
 import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
-const PRED_DEFAULT=`0x68DDf240099D16aFd68982b2E78E348565cAAB46`;
-const RPC=`https://rpc.bohr.life`;
-const EXPLORER=`https://scan.bohr.life`;
-const CHAIN_ID=0x3c8;
+const NETS={
+  968:{label:`testnet`,rpc:`https://rpc.bohr.life`,explorer:`https://scan.bohr.life`,
+    pred:`0x68DDf240099D16aFd68982b2E78E348565cAAB46`,tag:`TESTNET 968`},
+  677:{label:`mainnet`,rpc:`https://rpc.botchain.ai`,explorer:`https://scan.botchain.ai`,
+    pred:`0x3cb5faCA74f5F0211a1f1a773Ed45B042bDD50C5`,tag:`MAINNET 677`},
+};
+const NET_KEY=`mp_net`;
+let CHAIN_ID=Number(localStorage.getItem(NET_KEY))||968;
+if(!NETS[CHAIN_ID])CHAIN_ID=968;
+let RPC=NETS[CHAIN_ID].rpc;
+let EXPLORER=NETS[CHAIN_ID].explorer;
+let PRED_DEFAULT=NETS[CHAIN_ID].pred;
+function netObj(id){return id===677?botMainnet:botTestnet;}
+function applyNet(id){
+  CHAIN_ID=id;RPC=NETS[id].rpc;EXPLORER=NETS[id].explorer;PRED_DEFAULT=NETS[id].pred;
+  try{localStorage.setItem(NET_KEY,String(id));}catch(e){}
+  const sel=el(`netSel`);if(sel)sel.value=String(id);
+  el(`paddr`).value=PRED_DEFAULT;
+  el(`chainLabel`).textContent=NETS[id].tag;
+  updateExplorerLink();
+  log(`network → BOT Chain `+NETS[id].label+` `+id);
+  state.sel=null;scan();renderLeaderboard();
+  if(account)el(`walletState`).textContent=shorten(account)+` · `+NETS[id].label;
+}
 
 const PRED_ABI=[
 `function owner() view returns (address)`,
@@ -63,8 +83,8 @@ const botTestnet={
   caipNetworkId:`eip155:968`,
   name:`BOT Chain Testnet`,
   nativeCurrency:{name:`BOT`,symbol:`BOT`,decimals:18},
-  rpcUrls:{default:{http:[RPC]}},
-  blockExplorers:{default:{name:`BOT Scan`,url:EXPLORER}},
+  rpcUrls:{default:{http:[`https://rpc.bohr.life`]}},
+  blockExplorers:{default:{name:`BOT Scan`,url:`https://scan.bohr.life`}},
 };
 const botMainnet={
   id:677,
@@ -109,8 +129,8 @@ async function syncFromProvider(wp){
   let bp=new ethers.BrowserProvider(wp);
   const net=await bp.getNetwork();
   if(Number(net.chainId)!==CHAIN_ID){
-    log(`switching to BOT Chain testnet…`);
-    await modal.switchNetwork(botTestnet);
+    log(`switching to BOT Chain `+NETS[CHAIN_ID].label+`…`);
+    await modal.switchNetwork(netObj(CHAIN_ID));
     bp=new ethers.BrowserProvider(getProvider()||wp);
   }
   signer=await bp.getSigner();
@@ -118,7 +138,7 @@ async function syncFromProvider(wp){
 }
 
 function updateConnectedUI(){
-  el(`walletState`).textContent=shorten(account)+` · testnet`;
+  el(`walletState`).textContent=shorten(account)+` · `+NETS[CHAIN_ID].label;
   el(`connectBtn`).textContent=`Connected`;
 }
 function updateDisconnectedUI(){
@@ -248,7 +268,7 @@ function mapTxError(e, fallback){
   if(/BadOutcome/i.test(name))return `invalid side`;
   if(/NotEnded/i.test(name))return `market has not ended yet`;
   if(code===`CALL_EXCEPTION`||/missing revert data|CALL_EXCEPTION/i.test(e?.message||``)){
-    return `simulation failed with no reason from RPC — usually insufficient BOT for stake + gas, wrong network, or market just closed. Check balance, chain 968, and market status.`;
+    return `simulation failed with no reason from RPC — usually insufficient BOT for stake + gas, wrong network, or market just closed. Check balance, chain `+CHAIN_ID+`, and market status.`;
   }
   if(/insufficient funds/i.test(e?.message||``))return `insufficient BOT — need stake + gas`;
   if(/user rejected|rejected/i.test(e?.message||``))return `rejected in wallet`;
@@ -417,7 +437,7 @@ async function betReadiness(){
   if(!signer||!account)return {ok:false,reason:`connect a wallet first`};
   try{
     const net=await signer.provider.getNetwork();
-    if(Number(net.chainId)!==968)return {ok:false,reason:`wrong network — switch wallet to BOT testnet 968`};
+    if(Number(net.chainId)!==CHAIN_ID)return {ok:false,reason:`wrong network — switch wallet to BOT `+NETS[CHAIN_ID].label+` `+CHAIN_ID};
   }catch{ return {ok:false,reason:`wallet network unreadable — reconnect`}; }
   const v=pred();
   let m;
@@ -704,6 +724,8 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   const wm=el(`wordmark`);
   wm.innerHTML=word.split(``).map((ch,i)=>`<span style="animation-delay:${0.05*i}s">${ch}</span>`).join(``);
   el(`paddr`).value=PRED_DEFAULT;
+  const nsel=el(`netSel`);if(nsel){nsel.value=String(CHAIN_ID);nsel.addEventListener(`change`,()=>applyNet(Number(nsel.value)));}
+  el(`chainLabel`).textContent=NETS[CHAIN_ID].tag;
 
   el(`connectBtn`).addEventListener(`click`,onConnectClick);
   el(`refreshBtn`).addEventListener(`click`,scan);
