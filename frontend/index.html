@@ -234,6 +234,13 @@
     color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;
   }
   @media(max-width:640px){.addr-field{flex-direction:column;align-items:stretch;}.addr-field input{width:100%;min-width:0;flex:1;}}
+  @media(max-width:560px){.proof{max-width:100%;}.proof .proof-grid{grid-template-columns:1fr;gap:2px;}.proof .proof-link{display:block;margin-top:8px;}}
+  .proof{margin-top:24px;padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-width:380px;}
+  .proof .proof-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--muted-dim);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;}
+  .proof .proof-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-dim);}
+  .proof .proof-grid .val{color:var(--amber);overflow-wrap:anywhere;}
+  .proof .proof-link{display:inline-block;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--amber);text-decoration:none;}
+  .proof .proof-link:hover{text-decoration:underline;}
   @media(max-width:560px){
     .wrap{padding:0;}
     body{padding:20px 12px 70px;}
@@ -570,6 +577,15 @@ admin: withdrawFees(market) ── full claim or 30d; sweepUnclaimed 180d</div>
   <footer>
     <div class="addr-field"><span>contract</span><input id="paddr" title="MicroPredict deployment address" size="44"></div>
     <span><a href="#" id="clearLog">clear log</a> · <a id="explorerLink" href="https://scan.bohr.life" target="_blank" rel="noopener">view on explorer</a></span>
+    <div class="proof">
+      <div class="proof-title">Proof on BOT Mainnet</div>
+      <div class="proof-grid">
+        <span>Chain ID</span><span class="val">677</span>
+        <span>Contract</span><span class="val">0x3cb5faCA74f5F0211a1f1a773Ed45B042bDD50C5</span>
+        <span>Latest Tx</span><span class="val">0x470f8d460b7ca113f56c1960a53dfbaa942a0251bd50e1fdfccb03ee94d1483c</span>
+      </div>
+      <a href="https://scan.botchain.ai/tx/0x470f8d460b7ca113f56c1960a53dfbaa942a0251bd50e1fdfccb03ee94d1483c" target="_blank" rel="noopener" class="proof-link">View transaction on BOTScan ↗</a>
+    </div>
   </footer>
 </div>
 
