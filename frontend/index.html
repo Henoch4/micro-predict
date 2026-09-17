@@ -33,13 +33,15 @@
   :focus{outline:none;}
   :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:var(--radius-sm);}
   html,body{margin:0;padding:0;}
-  body{
-    background:var(--casing-deep);
-    color:var(--muted);
-    font-family:'Archivo',sans-serif;
-    line-height:1.5;
-    padding:28px 16px 80px;
-  }
+   body{
+     background:var(--casing-deep);
+     color:var(--muted);
+     font-family:'Archivo',sans-serif;
+     line-height:1.5;
+     padding:28px 16px 80px;
+     background-image:linear-gradient(rgba(31,63,106,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(31,63,106,.05) 1px,transparent 1px);
+     background-size:40px 40px;
+   }
   .wrap{max-width:920px;margin:0 auto;}
 
   header{
@@ -75,13 +77,34 @@
     #walletState{font-size:11px;}
   }
   button.btn:hover{border-color:var(--muted-dim);}
-  button.btn.primary{background:var(--amber);color:#3a2506;border-color:var(--amber);}
-  button.btn.primary:hover{filter:brightness(1.08);}
-  button.btn.ghost{background:transparent;}
-  button.btn:disabled{opacity:.45;cursor:not-allowed;}
-  #walletState{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--amber);align-self:center;}
+   button.btn.primary{background:linear-gradient(135deg,var(--side-b),var(--amber));color:#3a2506;border-color:transparent;}
+   button.btn.primary:hover{filter:brightness(1.08);}
+   button.btn.ghost{background:transparent;}
+   button.btn:disabled{opacity:.45;cursor:not-allowed;}
+   #walletState{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--amber);align-self:center;}
 
-  section{margin-bottom:26px;}
+   /* -- ticker/data strip -- */
+   .ticker-strip{background:var(--ink);color:var(--casing-deep);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 0;margin-bottom:22px;overflow:hidden;position:relative;border-radius:var(--radius-sm);border:1px solid rgba(217,154,43,.15);}
+   .ticker-strip .ticker-track{display:flex;gap:40px;white-space:nowrap;animation:tickerScroll 30s linear infinite;width:max-content;padding:0 20px;}
+   .ticker-strip .ticker-track span{color:var(--amber);font-weight:600;}
+   .ticker-strip .ticker-sep{color:var(--muted-dim);margin:0 4px;}
+   @keyframes tickerScroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+
+   /* -- pulse on status indicators -- */
+   @keyframes slowPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+   .pulse{animation:slowPulse 3s ease-in-out infinite;}
+
+   /* -- chart-like bar visuals -- */
+   .chart-bars{display:flex;align-items:flex-end;gap:3px;height:48px;margin:8px 0;}
+   .chart-bars .bar{flex:1;border-radius:2px 2px 0 0;min-height:4px;background:var(--amber);}
+   .chart-bars .bar.a{background:var(--side-a);}
+   .chart-bars .bar.b{background:var(--side-b);}
+   .chart-sparkline{display:flex;align-items:flex-end;gap:1px;height:32px;margin:6px 0;}
+   .chart-sparkline .dot{flex:1;border-radius:1px;min-width:3px;background:var(--amber);opacity:.7;}
+   .chart-svg-line{fill:none;stroke:var(--amber);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+   .chart-svg-area{fill:var(--amber);opacity:.15;}
+
+   section{margin-bottom:26px;}
   .section-label{
     font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);
     text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px 2px;
@@ -235,14 +258,14 @@
   }
   @media(max-width:640px){.addr-field{flex-direction:column;align-items:stretch;}.addr-field input{width:100%;min-width:0;flex:1;}}
   @media(max-width:560px){.proof{max-width:100%;}.proof .proof-grid{grid-template-columns:1fr;gap:2px;}.proof .proof-link{display:block;margin-top:8px;}}
-  .proof{margin-top:24px;padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-width:380px;}
-  .proof .proof-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--muted-dim);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;}
-  .proof .proof-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-dim);}
-  .proof .proof-grid .val{color:var(--amber);overflow-wrap:anywhere;}
-  .proof .proof-link{display:inline-block;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--amber);text-decoration:none;}
-  .proof .proof-link:hover{text-decoration:underline;}
-  .proof-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
-  .proof-links .proof-link{margin-top:0;}
+   .proof{margin-top:24px;padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-width:380px;border-left:3px solid var(--amber);box-shadow:0 0 12px rgba(217,154,43,.06);}
+   .proof .proof-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--amber);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;}
+   .proof .proof-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-dim);}
+   .proof .proof-grid .val{color:var(--amber);overflow-wrap:anywhere;}
+   .proof .proof-link{display:inline-block;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--amber);text-decoration:none;border-bottom:1px solid var(--amber);}
+   .proof .proof-link:hover{text-decoration:underline;opacity:.85;}
+   .proof-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+   .proof-links .proof-link{margin-top:0;}
   @media(max-width:560px){
     .wrap{padding:0;}
     body{padding:20px 12px 70px;}
@@ -315,22 +338,68 @@
         <svg width="52" height="34" viewBox="0 0 104 68" aria-hidden="true" style="flex:none;"><rect x="2" y="4" width="48" height="60" rx="8" fill="#1f3f6a"/><rect x="54" y="4" width="48" height="60" rx="8" fill="#b3401f"/><path d="M50 24 L59 34 L50 44 Z" fill="#f5efe0"/><text x="26" y="47" text-anchor="middle" font-family="monospace" font-size="30" font-weight="bold" fill="#f5efe0">M</text><text x="79" y="47" text-anchor="middle" font-family="monospace" font-size="30" font-weight="bold" fill="#f5efe0">P</text></svg>
         <div class="wordmark" id="wordmark"></div>
       </div>
-      <div class="chain-tag">BOT CHAIN · <span id="chainLabel">TESTNET 968</span></div>
-    </div>
-    <div class="head-right">
-      <select id="netSel" title="Network" style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px;border-radius:4px;border:1px solid var(--line);background:var(--panel);color:var(--ink);min-height:44px;">
-        <option value="968">Testnet 968</option>
-        <option value="677">Mainnet 677</option>
-      </select>
-      <span id="walletState">not connected</span>
-      <span id="ownerBadge" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--side-a);border:1px solid var(--side-a);padding:3px 8px;border-radius:3px;">owner</span>
-      <span id="roleBadge" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);border:1px solid var(--muted);padding:3px 8px;border-radius:3px;"></span>
-      <button class="btn primary" id="connectBtn">Connect wallet</button>
-    </div>
-  </header>
+       <div class="chain-tag">BOT CHAIN · <span id="chainLabel">TESTNET 968</span></div>
+       <div class="chart-sparkline pulse" style="margin-top:6px;width:140px;height:24px;">
+         <div class="dot" style="height:40%;background:var(--side-a)"></div>
+         <div class="dot" style="height:60%;background:var(--side-a)"></div>
+         <div class="dot" style="height:45%;background:var(--side-a)"></div>
+         <div class="dot" style="height:80%;background:var(--side-a)"></div>
+         <div class="dot" style="height:55%;background:var(--side-b)"></div>
+         <div class="dot" style="height:90%;background:var(--side-b)"></div>
+         <div class="dot" style="height:70%;background:var(--side-b)"></div>
+         <div class="dot" style="height:95%;background:var(--side-b)"></div>
+         <div class="dot" style="height:65%;background:var(--amber)"></div>
+         <div class="dot" style="height:85%;background:var(--amber)"></div>
+       </div>
+     </div>
+     <div class="head-right">
+       <select id="netSel" title="Network" style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px;border-radius:4px;border:1px solid var(--line);background:var(--panel);color:var(--ink);min-height:44px;">
+         <option value="968">Testnet 968</option>
+         <option value="677">Mainnet 677</option>
+       </select>
+       <span id="walletState">not connected</span>
+       <span id="ownerBadge" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--side-a);border:1px solid var(--side-a);padding:3px 8px;border-radius:3px;">owner</span>
+       <span id="roleBadge" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);border:1px solid var(--muted);padding:3px 8px;border-radius:3px;"></span>
+       <button class="btn primary" id="connectBtn">Connect wallet</button>
+     </div>
+   </header>
 
-  <section>
-    <p class="section-label">Odds board — live markets</p>
+   <div class="ticker-strip">
+     <div class="ticker-track">
+       <span>BTC 67,842</span><span class="ticker-sep">|</span>
+       <span>ETH 3,891</span><span class="ticker-sep">|</span>
+       <span>Volume $2.4M</span><span class="ticker-sep">|</span>
+       <span>Markets 12</span><span class="ticker-sep">|</span>
+       <span>Solana 178.20</span><span class="ticker-sep">|</span>
+       <span>AVAX 38.45</span><span class="ticker-sep">|</span>
+       <span>BTC 67,842</span><span class="ticker-sep">|</span>
+       <span>ETH 3,891</span><span class="ticker-sep">|</span>
+       <span>Volume $2.4M</span><span class="ticker-sep">|</span>
+       <span>Markets 12</span><span class="ticker-sep">|</span>
+       <span>Solana 178.20</span><span class="ticker-sep">|</span>
+       <span>AVAX 38.45</span>
+     </div>
+   </div>
+
+   <div class="ticker-strip">
+     <div class="ticker-track">
+       <span>BTC 67,842</span><span class="ticker-sep">|</span>
+       <span>ETH 3,891</span><span class="ticker-sep">|</span>
+       <span>Volume $2.4M</span><span class="ticker-sep">|</span>
+       <span>Markets 12</span><span class="ticker-sep">|</span>
+       <span>Solana 178.20</span><span class="ticker-sep">|</span>
+       <span>AVAX 38.45</span><span class="ticker-sep">|</span>
+       <span>BTC 67,842</span><span class="ticker-sep">|</span>
+       <span>ETH 3,891</span><span class="ticker-sep">|</span>
+       <span>Volume $2.4M</span><span class="ticker-sep">|</span>
+       <span>Markets 12</span><span class="ticker-sep">|</span>
+       <span>Solana 178.20</span><span class="ticker-sep">|</span>
+       <span>AVAX 38.45</span>
+     </div>
+   </div>
+
+   <section>
+     <p class="section-label">Odds board — live markets</p>
     <div class="board">
       <table class="board-table">
         <thead>
