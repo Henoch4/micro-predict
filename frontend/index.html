@@ -241,6 +241,8 @@
   .proof .proof-grid .val{color:var(--amber);overflow-wrap:anywhere;}
   .proof .proof-link{display:inline-block;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--amber);text-decoration:none;}
   .proof .proof-link:hover{text-decoration:underline;}
+  .proof-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+  .proof-links .proof-link{margin-top:0;}
   @media(max-width:560px){
     .wrap{padding:0;}
     body{padding:20px 12px 70px;}
@@ -254,6 +256,8 @@
     .wp-card .wp-arch td:first-child,.wp-card .wp-road td:first-child{white-space:normal;}
     .wp-card .wp-flow{font-size:11px;padding:12px;}
     .ticket .cta{white-space:normal;line-height:1.35;min-height:48px;}
+    .proof-links{flex-direction:column;gap:4px;}
+    .proof .proof-link{display:block;margin-top:4px;}
   }
   @media(max-width:380px){
     .wordmark span{width:19px;height:25px;font-size:12px;}
@@ -584,7 +588,10 @@ admin: withdrawFees(market) ── full claim or 30d; sweepUnclaimed 180d</div>
         <span>Contract</span><span class="val">0x3cb5faCA74f5F0211a1f1a773Ed45B042bDD50C5</span>
         <span>Latest Tx</span><span class="val">0x470f8d460b7ca113f56c1960a53dfbaa942a0251bd50e1fdfccb03ee94d1483c</span>
       </div>
-      <a href="https://scan.botchain.ai/tx/0x470f8d460b7ca113f56c1960a53dfbaa942a0251bd50e1fdfccb03ee94d1483c" target="_blank" rel="noopener" class="proof-link">View transaction on BOTScan ↗</a>
+      <div class="proof-links">
+        <a href="https://botchain.ai" target="_blank" rel="noopener" class="proof-link">BOT Chain Website ↗</a>
+        <a href="https://scan.botchain.ai/tx/0x470f8d460b7ca113f56c1960a53dfbaa942a0251bd50e1fdfccb03ee94d1483c" target="_blank" rel="noopener" class="proof-link">View transaction on BOTScan ↗</a>
+      </div>
     </div>
   </footer>
 </div>
