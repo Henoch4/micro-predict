@@ -107,7 +107,7 @@ const modal=createAppKit({
     url:`https://micro-predict.vercel.app`,
     icons:[`https://micro-predict.vercel.app/favicon.ico`],
   },
-  themeVariables:{'--w3m-accent':`#d99a2b`},
+  themeVariables:{'--w3m-accent':`#f59e0b`},
   features:{analytics:false},
 });
 

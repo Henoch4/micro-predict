@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#f5efe0">
+<meta name="theme-color" content="#0f172a">
 <title>MicroPredict — BOT Chain odds board</title>
 <link rel="icon" type="image/png" href="./logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,20 +11,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --casing:#ece5d0;
-    --casing-deep:#f5efe0;
-    --panel:#ece5d0;
-    --flap:#efe7d3;
-    --flap-shadow:#c9bf9f;
-    --ink:#221f19;
-    --muted:#6f6756;
-    --muted-dim:#8a8068;
-    --side-a:#1f3f6a;
-    --side-a-ink:#e8eef7;
-    --side-b:#b3401f;
-    --side-b-ink:#fbe6da;
-    --amber:#d99a2b;
-    --line:rgba(34,31,25,.18);
+    --casing:#1e293b;
+    --casing-deep:#0f172a;
+    --panel:#1e293b;
+    --flap:#1e3a5f;
+    --flap-shadow:#0c1a2e;
+    --ink:#f1f5f9;
+    --muted:#94a3b8;
+    --muted-dim:#64748b;
+    --side-a:#0ea5e9;
+    --side-a-ink:#0c1a2e;
+    --side-b:#ef4444;
+    --side-b-ink:#1e293b;
+    --amber:#f59e0b;
+    --line:rgba(148,163,184,.18);
     --radius-lg:10px;
     --radius-sm:4px;
   }
@@ -39,7 +39,7 @@
      font-family:'Archivo',sans-serif;
      line-height:1.5;
      padding:28px 16px 80px;
-     background-image:linear-gradient(rgba(31,63,106,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(31,63,106,.05) 1px,transparent 1px);
+      background-image:linear-gradient(rgba(148,163,184,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.05) 1px,transparent 1px);
      background-size:40px 40px;
    }
   .wrap{max-width:920px;margin:0 auto;}
@@ -77,14 +77,14 @@
     #walletState{font-size:11px;}
   }
   button.btn:hover{border-color:var(--muted-dim);}
-   button.btn.primary{background:linear-gradient(135deg,var(--side-b),var(--amber));color:#3a2506;border-color:transparent;}
+    button.btn.primary{background:linear-gradient(135deg,var(--side-b),var(--amber));color:#0c1a2e;border-color:transparent;}
    button.btn.primary:hover{filter:brightness(1.08);}
    button.btn.ghost{background:transparent;}
    button.btn:disabled{opacity:.45;cursor:not-allowed;}
    #walletState{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--amber);align-self:center;}
 
    /* -- ticker/data strip -- */
-   .ticker-strip{background:var(--ink);color:var(--casing-deep);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 0;margin-bottom:22px;overflow:hidden;position:relative;border-radius:var(--radius-sm);border:1px solid rgba(217,154,43,.15);}
+    .ticker-strip{background:var(--ink);color:var(--casing-deep);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 0;margin-bottom:22px;overflow:hidden;position:relative;border-radius:var(--radius-sm);border:1px solid rgba(245,158,11,.15);}
    .ticker-strip .ticker-track{display:flex;gap:40px;white-space:nowrap;animation:tickerScroll 30s linear infinite;width:max-content;padding:0 20px;}
    .ticker-strip .ticker-track span{color:var(--amber);font-weight:600;}
    .ticker-strip .ticker-sep{color:var(--muted-dim);margin:0 4px;}
@@ -128,8 +128,8 @@
   @keyframes flapIn{to{transform:rotateX(0deg);opacity:1;}}
   tr.flap-row td{padding:11px 10px;border-bottom:2px solid var(--flap-shadow);font-size:13.5px;vertical-align:middle;}
   tr.flap-row:last-child td{border-bottom:none;}
-  tr.flap-row:hover{background:#e7ddc2;}
-  tr.flap-row.selected{background:#dfd3ab;}
+    tr.flap-row:hover{background:#253347;}
+    tr.flap-row.selected{background:#2d4060;}
   td.mkt-name{font-weight:700;overflow-wrap:anywhere;}
   td.mkt-id{font-family:'IBM Plex Mono',monospace;color:var(--muted-dim);width:26px;}
   td.mkt-closes{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-dim);}
@@ -143,10 +143,10 @@
     font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;
     padding:3px 8px;border-radius:3px;display:inline-block;white-space:nowrap;
   }
-  .status-flap.open{background:#cfe8c9;color:#204d16;}
-  .status-flap.ended{background:#e9dcae;color:#5b4809;}
-  .status-flap.resolved{background:#c7d8ef;color:#1c3a63;}
-  .status-flap.void{background:#e3c3c3;color:#5e1f1f;}
+   .status-flap.open{background:#065f46;color:#a7f3d0;}
+   .status-flap.ended{background:#78350f;color:#fde68a;}
+   .status-flap.resolved{background:#1e3a5f;color:#bae6fd;}
+   .status-flap.void{background:#7f1d1d;color:#fca5a5;}
   @media(max-width:800px){
     .col-closes{display:none;}
   }
@@ -181,18 +181,18 @@
   .field label{display:block;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
   .field input, .field select{
     width:100%;padding:8px 9px;border-radius:var(--radius-sm);border:1.5px solid var(--flap-shadow);
-    background:#faf6ea;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:13px;
+     background:#1e293b;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:13px;
   }
   .side-toggle{display:flex;gap:8px;}
   .side-toggle button{
     flex:1;padding:9px;border-radius:var(--radius-sm);border:1.5px solid var(--flap-shadow);
-    background:#faf6ea;font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);
+     background:#1e293b;font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);
   }
   .side-toggle button.on.a{background:var(--side-a);color:var(--side-a-ink);border-color:var(--side-a);}
   .side-toggle button.on.b{background:var(--side-b);color:var(--side-b-ink);border-color:var(--side-b);}
   .ticket .cta{
     width:100%;margin-top:6px;padding:11px;border-radius:var(--radius-sm);border:none;
-    background:var(--amber);color:#3a2506;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;cursor:pointer;
+     background:var(--amber);color:#0c1a2e;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;cursor:pointer;
   }
   .ticket .cta:hover{filter:brightness(1.06);}
   .ticket .cta:disabled{opacity:.45;cursor:not-allowed;}
@@ -201,7 +201,7 @@
   .receipt{
     background:var(--flap);color:var(--ink);border-radius:var(--radius-lg);padding:20px;
     font-family:'IBM Plex Mono',monospace;
-    background-image:repeating-linear-gradient(var(--flap),var(--flap) 21px,#e2d8bb 22px);
+     background-image:repeating-linear-gradient(var(--flap),var(--flap) 21px,#253347 22px);
   }
   .receipt h3{margin:0 0 2px;font-family:'Archivo',sans-serif;font-size:15px;text-align:center;}
   .receipt .sub{text-align:center;font-size:11px;color:var(--muted-dim);margin-bottom:14px;}
@@ -227,7 +227,7 @@
   #backoffice{display:none;}
   .office{
     border:1.5px dashed var(--line);border-radius:var(--radius-lg);padding:18px;
-    background:repeating-linear-gradient(135deg,#e9e2cc,#e9e2cc 12px,#e6dcc3 12px,#e6dcc3 24px);
+     background:repeating-linear-gradient(135deg,#253347,#253347 12px,#2d4060 12px,#2d4060 24px);
   }
   .office-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   @media(max-width:720px){.office-grid{grid-template-columns:1fr;}}
@@ -335,7 +335,7 @@
   <header>
     <div>
       <div style="display:flex;align-items:center;gap:12px;">
-        <svg width="52" height="34" viewBox="0 0 104 68" aria-hidden="true" style="flex:none;"><rect x="2" y="4" width="48" height="60" rx="8" fill="#1f3f6a"/><rect x="54" y="4" width="48" height="60" rx="8" fill="#b3401f"/><path d="M50 24 L59 34 L50 44 Z" fill="#f5efe0"/><text x="26" y="47" text-anchor="middle" font-family="monospace" font-size="30" font-weight="bold" fill="#f5efe0">M</text><text x="79" y="47" text-anchor="middle" font-family="monospace" font-size="30" font-weight="bold" fill="#f5efe0">P</text></svg>
+        <svg width="52" height="34" viewBox="0 0 104 68" aria-hidden="true" style="flex:none;"><rect x="2" y="4" width="48" height="60" rx="8" fill="#0ea5e9"/><rect x="54" y="4" width="48" height="60" rx="8" fill="#ef4444"/><path d="M50 24 L59 34 L50 44 Z" fill="#0f172a"/><text x="26" y="47" text-anchor="middle" font-family="monospace" font-size="30" font-weight="bold" fill="#f1f5f9">M</text><text x="79" y="47" text-anchor="middle" font-family="monospace" font-size="30" font-weight="bold" fill="#f1f5f9">P</text></svg>
         <div class="wordmark" id="wordmark"></div>
       </div>
        <div class="chain-tag">BOT CHAIN · <span id="chainLabel">TESTNET 968</span></div>
@@ -658,6 +658,7 @@ admin: withdrawFees(market) ── full claim or 30d; sweepUnclaimed 180d</div>
         <span>Latest Tx</span><span class="val">0x470f8d460b7ca113f56c1960a53dfbaa942a0251bd50e1fdfccb03ee94d1483c</span>
       </div>
       <div class="proof-links">
+        <a href="https://micro-predict.vercel.app/" target="_blank" rel="noopener" class="proof-link">Live Site ↗</a>
         <a href="https://botchain.ai" target="_blank" rel="noopener" class="proof-link">BOT Chain Website ↗</a>
         <a href="https://scan.botchain.ai/tx/0x470f8d460b7ca113f56c1960a53dfbaa942a0251bd50e1fdfccb03ee94d1483c" target="_blank" rel="noopener" class="proof-link">View transaction on BOTScan ↗</a>
       </div>
