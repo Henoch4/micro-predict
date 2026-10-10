@@ -98,7 +98,7 @@ const botMainnet={
 
 const modal=createAppKit({
   adapters:[new EthersAdapter()],
-  networks:[botTestnet,botMainnet],
+  networks:[botMainnet,botTestnet],
   defaultNetwork:botTestnet,
   projectId:PROJECT_ID,
   metadata:{
